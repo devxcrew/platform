@@ -188,3 +188,12 @@ Local verification: six tests passed, TypeScript build passed, version alignment
 The file-backed SQLite list benchmark returned 1000 rows over five reads, with a maximum of 10.5 milliseconds.
 Environment secrets, SQLite files, caches, build output, and IDE files remain ignored.
 This source delivery does not establish npm publication, complete foundation acceptance, or production deployment.
+# Workspace GitHub release - 2026-10-04
+
+npm run release:check passed: six file-backed tests, build, aligned metadata, LF and package dry run.
+Configured-secret scan found no matches in Git release candidates.
+
+User authorization: update versions and changelogs, then commit and push all workspace repositories.
+Record the public identity owner, permission declarations and labels, additive migrations and verified GitHub source delivery.
+Authenticated MCP connection passed for this owner before release work.
+This delivery covers GitHub source. Npm publication, production deployment and real email acceptance remain separate gates.

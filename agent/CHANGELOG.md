@@ -2,11 +2,23 @@
 
 ## Version State
 
-Current version: 0.1.0
+Current version: 0.1.1
 
-Release tag: v-0.1.0
+Release tag: v-0.1.1
 
-Changelog label: v 0.1.0
+Changelog label: v 0.1.1
+
+## v-0.1.1
+
+### [v 0.1.1] 2026-10-04 5:00 pm - Record Platform source delivery
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Record the public identity owner, permission declarations and labels, additive migrations and verified GitHub source delivery.
 
 ## v-0.1.0
 

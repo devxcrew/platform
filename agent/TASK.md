@@ -159,3 +159,9 @@ See [current security and privacy profile](SECURITY-PROFILE.md).
 Local password-only testing is supported. MFA, email verification, scheduled retention, erasure and off-host backup acceptance remain open.
 The source review confirmed opportunistic expired-session/throttle cleanup, with no lifecycle-token or audit retention scheduler.
 Do not close production security or retention acceptance from the local test results.
+## Workspace GitHub release - 2026-10-04
+
+Release title: Record Platform source delivery.
+Record the public identity owner, permission declarations and labels, additive migrations and verified GitHub source delivery.
+Update version records, review release checks, then commit and push the current owner branch.
+Preserve existing task history and incomplete acceptance gates.
