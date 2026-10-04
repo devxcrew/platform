@@ -2,6 +2,8 @@
 
 ## Completion wave - 2026-10-04
 
+- [x] Publish the approved MIT package 0.1.2 and verify its registry checksum against the prepared archive.
+
 Source 0.1.1 is committed to devxcrew/platform. File-backed identity and owner release checks exist. This wave documents the actual delivery failure and token usability contract. Browser and real delivery acceptance remain open.
 
 - [x] Reconcile current status with the GitHub source release and latest owner audit.
