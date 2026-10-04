@@ -4,7 +4,7 @@
 
 - [x] Publish the approved MIT package 0.1.2 and verify its registry checksum against the prepared archive.
 
-Source 0.1.1 is committed to devxcrew/platform. File-backed identity and owner release checks exist. This wave documents the actual delivery failure and token usability contract. Browser and real delivery acceptance remain open.
+Source 0.1.2 is committed to devxcrew/platform. File-backed identity and owner release checks exist. This wave documents the actual delivery failure and token usability contract. Browser and real delivery acceptance remain open.
 
 - [x] Reconcile current status with the GitHub source release and latest owner audit.
 - [x] Retrieve fresh authenticated cloud governance before this wave.
@@ -39,8 +39,7 @@ Local release checks and remote delivery evidence appear in AUDIT.md.
 
 Master: [all foundation tasks](D:/codexsun/projects/cxsun/agent/CHECKLIST.md).
 
-Updated: 2026-10-04. Checked steps have recorded local evidence.
-Parents retain incomplete acceptance gates. Mail tests and production deployment are deferred by user.
+Updated: 2026-10-04. Checked steps have recorded evidence. External acceptance stays pending.
 
 ### Phase 01 - Baseline and ownership
 
@@ -74,7 +73,7 @@ Parents retain incomplete acceptance gates. Mail tests and production deployment
 ### Phase 06 - Verification and operations
 
 - [ ] **06.02 Verify persistence, mutations and security** - in-review. Owner: platform.
-  - [x] 06.02.1 Four expanded file-backed suites cover restart, scope and recovery regressions.
+  - [x] 06.02.1 Six file-backed identity tests cover restart, scope and recovery regressions.
   - [x] 06.02.2 Concurrent invitation/recovery single-claim and expired-token regressions pass.
   - [ ] 06.02.7 Final production operational acceptance - deferred by user.
 
@@ -186,3 +185,8 @@ Release title: Record Platform source delivery.
 Record the public identity owner, permission declarations and labels, additive migrations and verified GitHub source delivery.
 Update version records, review release checks, then commit and push the current owner branch.
 Preserve existing task history and incomplete acceptance gates.
+
+
+## Registry consumer acceptance - 2026-10-04
+
+Two independent generated apps passed exact registry installation, application verification, module boundaries and live SQLite checks. Cross-app session denial passed. Cxsun three-OS CI passed in run 37204145628. See projects/cxsun/agent/GENERATED-CONSUMERS.json and RELEASE-PACKAGES.json. Browser acceptance and future version upgrade rehearsal remain separate.
