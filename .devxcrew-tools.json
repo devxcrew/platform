@@ -1,0 +1,5 @@
+{
+  "maintenance": {
+    "changelogPath": "agent/CHANGELOG.md"
+  }
+}

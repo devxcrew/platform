@@ -1,0 +1,61 @@
+{
+  "name": "@devxcrew/platform",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devxcrew/platform.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./identity/schemas": {
+      "types": "./dist/modules/identity/identity.public-schemas.d.ts",
+      "default": "./dist/modules/identity/identity.public-schemas.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=26.10.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "tsx --test src/modules/identity/*.test.ts",
+    "mcp:connect": "node agent/connect.mjs",
+    "mcp:verify": "node agent/connect.mjs --strict",
+    "version-bump": "devxcrew-tools version:bump",
+    "version:bump": "devxcrew-tools version:bump",
+    "version:show": "devxcrew-tools version:show",
+    "changelog:append": "devxcrew-tools changelog:append",
+    "changelog:show": "devxcrew-tools changelog:show",
+    "fix:line-endings": "devxcrew-tools lines:fix",
+    "lines:check": "devxcrew-tools lines:check",
+    "check:versions": "devxcrew-tools check:versions",
+    "github:now": "devxcrew-tools github:now",
+    "tools:check": "devxcrew-tools dependencies:order && devxcrew-tools check:versions && devxcrew-tools lines:check",
+    "check": "npm run tools:check && npm test",
+    "release:check": "npm run check && npm run build && npm pack --dry-run --ignore-scripts",
+    "prepublishOnly": "npm run release:check",
+    "verify": "npm run release:check"
+  },
+  "dependencies": {
+    "kysely": "^0.29.5",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@devxcrew/tools": "0.1.7",
+    "@types/node": "^26.0.0",
+    "tsx": "^4.23.12",
+    "typescript": "7.0.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
