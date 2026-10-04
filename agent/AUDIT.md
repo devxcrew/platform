@@ -179,6 +179,9 @@ Six expanded tests and release:check pass. Consuming app migration and rolepicke
 
 User authorization: create devxcrew/platform, commit the initial source, and push.
 GitHub repository created: https://github.com/devxcrew/platform, public, target branch main.
+Initial source commit 257b686 pushed successfully. GitHub main matched the local commit.
+Repository credential selection uses the authorized devxcrew account.
+Git attributes keep text files in LF format across Windows and CI checkouts.
 Authenticated MCP connection passed before repository work.
 Repository version: 0.1.0. CI checks a clean npm installation and package verification.
 Local verification: six tests passed, TypeScript build passed, version alignment and line-ending checks passed.

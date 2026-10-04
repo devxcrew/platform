@@ -7,6 +7,11 @@ Version stays 0.1.0. GitHub delivery does not close npm publication or productio
 CI runs the package verification command from a clean checkout.
 Local release checks and remote delivery evidence appear in AUDIT.md.
 
+- [x] Create the public devxcrew/platform repository.
+- [x] Commit and push the initial source at version 0.1.0.
+- [x] Verify that GitHub main matches the initial local commit.
+- [x] Add CI and portable LF checkout rules.
+
 <!-- foundation-checklist:start -->
 
 ## Numbered phase checklist
