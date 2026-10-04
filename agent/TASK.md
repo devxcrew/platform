@@ -11,7 +11,7 @@ Source 0.1.1 is committed to devxcrew/platform. File-backed identity and owner r
 
 npm run release:check passed six file-backed identity tests, build and a 59-file MIT package. The 1,000-row list benchmark maximum was 7.3 ms, below its 1,000 ms local budget.
 - [x] Prepare isolated CI coverage for the target Windows/Linux/macOS runtime.
-- [ ] Verify this wave's exact GitHub CI results.
+- [x] Verify Windows/Linux/macOS CI: run 37202025119.
 
 
 Use projects/cxsun/agent/REMAINING-WORK.md for ordered cross-owner dependencies.

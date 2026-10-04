@@ -2,11 +2,23 @@
 
 ## Version State
 
-Current version: 0.1.1
+Current version: 0.1.2
 
-Release tag: v-0.1.1
+Release tag: v-0.1.2
 
-Changelog label: v 0.1.1
+Changelog label: v 0.1.2
+
+## v-0.1.2
+
+### [v 0.1.2] 2026-10-04 6:13 pm - Public MIT foundation release
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Prepare a new version after npm rejected the previously unpublished 0.1.1 version.
 
 ## v-0.1.1
 
