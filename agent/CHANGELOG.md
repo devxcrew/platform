@@ -10,6 +10,15 @@ Changelog label: v 0.1.1
 
 ## v-0.1.1
 
+### Local completion preparation - 2026-10-04
+
+- Reconcile task status and preserve historical evidence.
+- Apply the user-selected MIT license to first-party code and packed metadata.
+- Add or expand isolated Windows, Linux and macOS source CI.
+- npm run release:check passed six file-backed identity tests, build and a 59-file MIT package. The 1,000-row list benchmark maximum was 7.3 ms, below its 1,000 ms local budget.
+- Publication and external acceptance gates remain open.
+
+
 ### [v 0.1.1] 2026-10-04 5:00 pm - Record Platform source delivery
 
 #### Database Changes

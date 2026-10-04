@@ -197,3 +197,8 @@ User authorization: update versions and changelogs, then commit and push all wor
 Record the public identity owner, permission declarations and labels, additive migrations and verified GitHub source delivery.
 Authenticated MCP connection passed for this owner before release work.
 This delivery covers GitHub source. Npm publication, production deployment and real email acceptance remain separate gates.
+
+## Completion wave evidence - 2026-10-04
+
+npm run release:check passed six file-backed identity tests, build and a 59-file MIT package. The 1,000-row list benchmark maximum was 7.3 ms, below its 1,000 ms local budget.
+Authenticated MCP passed before work. New or expanded three-OS CI requires actual remote run evidence. Npm publication and deployed acceptance remain open.

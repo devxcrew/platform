@@ -62,3 +62,21 @@ Platform owns portal cookies, unsafe Origin validation and cancellation. Raw-tok
 
 Permission declarations may include an owner-written label. Permission catalog DTOs expose id, label, owner, appId and portals.
 Register identityPermissionLabelsMigration after declarations. Filter role choices by allowed portals and retain server validation.
+
+## Identity delivery failure contract
+
+Platform owns invitation and recovery tokens. Email owns transport and receipt validation.
+A successful send must return a nonempty receipt before the token becomes usable.
+A transport error, timeout, canceled request, or missing receipt removes the newly issued token and returns a safe unavailable error.
+A provider can accept a message before its response times out. That message can contain an unusable link.
+The UI must offer a new explicit request after failure. It must not promise delivery or retry silently.
+Successful resend creates a new token, then revokes the old invitation. A failed resend leaves the old invitation available.
+Recovery requests invalidate earlier recovery tokens for the same account.
+Recovery links expire after 30 minutes. Invitations expire after 24 hours. Completion claims one token once.
+Disabled delivery returns unavailable and does not create a simulated success.
+No automatic retry queue or durable outbox is implemented in this profile.
+Actual SMTP delivery acceptance remains deferred. Local failure and concurrency checks do not establish real recipient delivery.
+
+## Distribution
+
+First-party package code uses the MIT license. Dependency licenses and notices retain their original terms.

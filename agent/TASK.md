@@ -1,5 +1,24 @@
 # Current task
 
+## Completion wave - 2026-10-04
+
+Source 0.1.1 is committed to devxcrew/platform. File-backed identity and owner release checks exist. This wave documents the actual delivery failure and token usability contract. Browser and real delivery acceptance remain open.
+
+- [x] Reconcile current status with the GitHub source release and latest owner audit.
+- [x] Retrieve fresh authenticated cloud governance before this wave.
+- [x] Apply the user-selected MIT license to first-party source, package metadata and lock metadata.
+- [x] Record this wave's affected checks and accept only gates with direct evidence.
+
+npm run release:check passed six file-backed identity tests, build and a 59-file MIT package. The 1,000-row list benchmark maximum was 7.3 ms, below its 1,000 ms local budget.
+- [x] Prepare isolated CI coverage for the target Windows/Linux/macOS runtime.
+- [ ] Verify this wave's exact GitHub CI results.
+
+
+Use projects/cxsun/agent/REMAINING-WORK.md for ordered cross-owner dependencies.
+Production deployment and real SMTP acceptance remain deferred. No pending external gate is marked complete.
+
+## Prior records
+
 ## Initial GitHub delivery - 2026-10-04
 
 The user authorized creation of devxcrew/platform, the initial commit, and push to main.
