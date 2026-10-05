@@ -1,4 +1,5 @@
 {
+  "allowLocalPackages": true,
   "maintenance": {
     "changelogPath": "agent/CHANGELOG.md"
   }

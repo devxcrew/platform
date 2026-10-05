@@ -1,7 +1,7 @@
 # Platform Core
 
 Source repository: https://github.com/devxcrew/platform.
-Package: `@devxcrew/platform`, version `0.1.0`.
+Package: `@devxcrew/platform`, source version `0.1.6`.
 
 Platform Core owns database identity, sessions, role permissions, and tenant membership.
 Applications consume its public provider. Framework remains responsible for business-neutral runtime primitives.
@@ -80,3 +80,9 @@ Actual SMTP delivery acceptance remains deferred. Local failure and concurrency 
 ## Distribution
 
 First-party package code uses the MIT license. Dependency licenses and notices retain their original terms.
+
+## Tenant storage
+
+Platform now exports createTenantProvider, tenantConnectionsMigration, provisionTenant and verifyTenantReadiness.
+The tenant owner uses public Framework database contracts. See agent/TENANCY.md for composition and upgrade guidance.
+Cxsun consumes matched development artifacts. This extraction does not publish new registry versions.

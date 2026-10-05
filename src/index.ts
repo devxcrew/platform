@@ -6,7 +6,7 @@ export {
   identityRolesMigration,
   identityPermissionDeclarationsMigration,
   identityPermissionLabelsMigration,
-  seedIdentity,
+  seedIdentity
 } from "./modules/identity/index.js";
 export type { IdentityPermissionDeclaration } from "./modules/identity/index.js";
 export {
@@ -18,12 +18,9 @@ export {
   membershipSchema,
   roleUpdateSchema,
   profileSchema,
-  settingsSchema,
+  settingsSchema
 } from "./modules/identity/index.js";
-export type {
-  IdentityListQuery,
-  IdentityResource,
-} from "./modules/identity/index.js";
+export type { IdentityListQuery, IdentityResource } from "./modules/identity/index.js";
 export type {
   IdentitySchema,
   IdentityConfig,
@@ -31,5 +28,11 @@ export type {
   Portal,
   IdentityDeliveryProvider,
   IdentityProviderOptions,
-  IdentityPermissionCatalogEntry,
+  IdentityPermissionCatalogEntry
+} from "./modules/identity/index.js";
+
+export * from "./modules/tenant/index.js";
+export {
+  createIdentityTenantDirectory,
+  type IdentityTenantDirectory
 } from "./modules/identity/index.js";

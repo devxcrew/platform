@@ -37,6 +37,16 @@ export class IdentityOrganizationRepository {
       .where("active", "=", 1)
       .executeTakeFirst();
   }
+  listActive(after: string, pageSize: number) {
+    return this.db
+      .selectFrom("identity_tenants")
+      .select("id")
+      .where("active", "=", 1)
+      .where("id", ">", after)
+      .orderBy("id")
+      .limit(pageSize)
+      .execute();
+  }
 
   list(actor: Principal, query: IdentityListQuery) {
     const present = (row: Record<string, unknown>) => ({

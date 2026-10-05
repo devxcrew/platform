@@ -19,3 +19,10 @@ Finish the open checks for Platform Core before production use.
 ## Completion rule
 
 Record evidence for each step in `agent/TASK.md` and `agent/AUDIT.md`. Keep a step open until its evidence passes. Local tests do not count as production acceptance.
+
+## Foundation extraction - 2026-10-05
+
+The shared owner extraction is implemented and connected to Cxsun development snapshots.
+Release new package versions before changing other apps to registry pins.
+Use consumer verification for fresh installation and preserved-data upgrades.
+Production deployment acceptance remains open.

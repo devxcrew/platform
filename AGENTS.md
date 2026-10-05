@@ -1,7 +1,9 @@
 # Platform Core owner
 
 Platform Core owns identity, sessions, role permissions, and tenant membership.
-Keep all identity implementations inside `src/modules/identity`.
+Keep identity implementations inside `src/modules/identity`.
+Keep tenant mapping, scope and provisioning implementations inside `src/modules/tenant`.
+Use public identity owner contracts for tenant identity reads. Framework owns generic database and settings infrastructure.
 Applications consume intentional public exports from `src/index.ts`.
 
 Retrieve current workspace rules from `https://mcp.codexsun.com/mcp` using `npm run mcp:connect` before edits.

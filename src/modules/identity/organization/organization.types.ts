@@ -8,3 +8,7 @@ export interface IdentityOrganizationTables {
   };
 }
 export type IdentityOrganizationRow = IdentityOrganizationTables["identity_tenants"];
+export interface IdentityTenantDirectory {
+  active(id: string): Promise<{ id: string; name: string } | undefined>;
+  listActive(after: string, pageSize: number): Promise<{ id: string }[]>;
+}

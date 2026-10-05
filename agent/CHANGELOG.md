@@ -8,7 +8,28 @@ Release tag: v-0.1.6
 
 Changelog label: v 0.1.6
 
+## Unreleased
+
+### 0.1.6 - 2026-10-05 19:21
+
+- Move generic database and settings behavior into Framework and tenant behavior into Platform.
+- Connect Cxsun through public exports and recorded development packages.
+- Preserve migration history and current tenant mappings.
+- Verify owner tests, app build, identity acceptance and live MariaDB fault checks.
+- Verify a fresh offline Cxsun installation from recorded packages without shared source imports.
+- Keep release versions unchanged. This work is not committed, pushed or published.
+
 ## v-0.1.6
+
+### [v 0.1.6] 2026-10-05 7:35 pm - Extract module-owned tenancy
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Platform owns tenant mappings, scope middleware and provisioning through public Framework and identity contracts. Verify passed: 27 tests, build and package dry run. CI now checks out and builds its sibling Framework dependency.
 
 ### [v 0.1.6] 2026-10-05 3:46 pm - Complete identity module ownership
 

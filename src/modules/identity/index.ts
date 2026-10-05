@@ -1,4 +1,6 @@
 export { createIdentityProvider } from "./identity.provider.js";
+export { createIdentityTenantDirectory } from "./organization/index.js";
+export type { IdentityTenantDirectory } from "./organization/index.js";
 export { IdentityError } from "./support/identity.error.js";
 export { identityMigration } from "./legacy/identity.migration.js";
 export { identityAdministrationMigration } from "./legacy/identity.administration-migration.js";
