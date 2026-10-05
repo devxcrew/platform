@@ -49,7 +49,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@devxcrew/framework": "file:../framework",
+    "@devxcrew/framework": "0.1.12",
     "@devxcrew/tools": "0.1.8",
     "@types/node": "^26.0.0",
     "tsx": "^4.23.12",
