@@ -1,6 +1,6 @@
 {
   "name": "@devxcrew/platform",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/devxcrew/platform.git"
@@ -26,7 +26,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepack": "npm run build",
-    "test": "tsx --test src/modules/identity/*.test.ts",
+    "test": "tsx --test src/modules/identity/tests/*.test.ts",
     "mcp:connect": "node agent/connect.mjs",
     "mcp:verify": "node agent/connect.mjs --strict",
     "version-bump": "devxcrew-tools version:bump",
@@ -49,7 +49,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@devxcrew/tools": "0.1.7",
+    "@devxcrew/tools": "0.1.8",
     "@types/node": "^26.0.0",
     "tsx": "^4.23.12",
     "typescript": "7.0.2"

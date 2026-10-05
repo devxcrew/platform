@@ -1,13 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { Kysely } from "kysely";
-import type { IdentitySchema } from "./identity.types.js";
-import { accountSchema } from "./identity.schema.js";
-import { hashPassword } from "./identity.password.js";
+import type { IdentitySchema } from "../identity.types.js";
+import { accountSchema } from "./user.schema.js";
+import { hashPassword } from "./user.password.js";
 
-export async function seedIdentity(
-  db: Kysely<IdentitySchema>,
-  env: NodeJS.ProcessEnv,
-) {
+export async function seedIdentity(db: Kysely<IdentitySchema>, env: NodeJS.ProcessEnv) {
   const tenantId = env.IDENTITY_TENANT_ID ?? "default";
   const accounts = ["user", "admin", "super-admin"].flatMap((portal) => {
     const prefix = `IDENTITY_SEED_${portal.toUpperCase().replace("-", "_")}`;
@@ -20,8 +17,8 @@ export async function seedIdentity(
         password,
         name: env[`${prefix}_NAME`]?.trim() || portal,
         portal,
-        tenantId,
-      }),
+        tenantId
+      })
     ];
   });
   await db.transaction().execute(async (trx) => {
@@ -30,7 +27,7 @@ export async function seedIdentity(
       .values({
         id: tenantId,
         name: env.IDENTITY_TENANT_NAME ?? "Default organization",
-        active: 1,
+        active: 1
       })
       .onConflict((c) => c.column("id").doNothing())
       .execute();
@@ -44,7 +41,7 @@ export async function seedIdentity(
         `desk.${portal}`,
         "identity.self",
         "identity.password",
-        ...(portal === "user" ? [] : ["identity.manage"]),
+        ...(portal === "user" ? [] : ["identity.manage"])
       ]) {
         await trx
           .insertInto("identity_permissions")
@@ -54,9 +51,7 @@ export async function seedIdentity(
         await trx
           .insertInto("identity_role_permissions")
           .values({ role_id: portal, permission_id: permission })
-          .onConflict((c) =>
-            c.columns(["role_id", "permission_id"]).doNothing(),
-          )
+          .onConflict((c) => c.columns(["role_id", "permission_id"]).doNothing())
           .execute();
       }
     }
@@ -75,7 +70,7 @@ export async function seedIdentity(
           email: account.email,
           name: account.name,
           password_hash: await hashPassword(account.password),
-          active: 1,
+          active: 1
         })
         .execute();
       await trx

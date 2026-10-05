@@ -1,10 +1,13 @@
-import { filterDeclaredPermissions } from "./identity.permission-declarations.js";
+import type { IdentityPermissionProvider } from "../permission/index.js";
 import { sql, type Kysely } from "kysely";
-import type { IdentitySchema, Portal } from "./identity.types.js";
-import { checkIdentityRequest } from "./identity.request-context.js";
+import type { IdentitySchema, Portal } from "../identity.types.js";
+import { checkIdentityRequest } from "../identity.request-context.js";
 
 export class IdentityRepository {
-  constructor(private readonly db: Kysely<IdentitySchema>) {}
+  constructor(
+    private readonly db: Kysely<IdentitySchema>,
+    private readonly permissions: IdentityPermissionProvider
+  ) {}
 
   user(email: string) {
     return this.db
@@ -23,12 +26,7 @@ export class IdentityRepository {
     return Number(row?.session_seconds ?? fallback);
   }
 
-  async principal(
-    userId: string,
-    tenantId: string,
-    portal: Portal,
-    appId: string,
-  ) {
+  async principal(userId: string, tenantId: string, portal: Portal, appId: string) {
     const member = await this.db
       .selectFrom("identity_memberships as m")
       .innerJoin("identity_users as u", "u.id", "m.user_id")
@@ -39,7 +37,7 @@ export class IdentityRepository {
         "u.name",
         "t.id as tenantId",
         "t.name as tenantName",
-        "m.custom_role_id as customRoleId",
+        "m.custom_role_id as customRoleId"
       ])
       .where("u.id", "=", userId)
       .where("m.tenant_id", "=", tenantId)
@@ -67,7 +65,12 @@ export class IdentityRepository {
       return {
         user: { id: member.id, email: member.email, name: member.name },
         tenant: { id: member.tenantId, name: member.tenantName },
-        permissions: await filterDeclaredPermissions(this.db, appId, portal, permissions.map((row) => row.permission_id)),
+        permissions: await this.permissions.filterDeclared(
+          this.db,
+          appId,
+          portal,
+          permissions.map((row) => row.permission_id)
+        )
       };
     }
     const permissions = await this.db
@@ -78,7 +81,12 @@ export class IdentityRepository {
     return {
       user: { id: member.id, email: member.email, name: member.name },
       tenant: { id: member.tenantId, name: member.tenantName },
-      permissions: await filterDeclaredPermissions(this.db, appId, portal, permissions.map((p) => p.permission_id)),
+      permissions: await this.permissions.filterDeclared(
+        this.db,
+        appId,
+        portal,
+        permissions.map((p) => p.permission_id)
+      )
     };
   }
 
@@ -96,7 +104,7 @@ export class IdentityRepository {
   async createSession(
     session: IdentitySchema["identity_sessions"],
     expectedHash: string,
-    previous?: string,
+    previous?: string
   ) {
     return this.db.transaction().execute(async (trx) => {
       checkIdentityRequest();
@@ -167,11 +175,9 @@ export class IdentityRepository {
         .values({
           key,
           attempts: 1,
-          expires_at: new Date(now.getTime() + 15 * 60 * 1000).toISOString(),
+          expires_at: new Date(now.getTime() + 15 * 60 * 1000).toISOString()
         })
-        .onConflict((c) =>
-          c.column("key").doUpdateSet({ attempts: sql`attempts + 1` }),
-        )
+        .onConflict((c) => c.column("key").doUpdateSet({ attempts: sql`attempts + 1` }))
         .execute();
       const row = await trx
         .selectFrom("identity_throttles")
@@ -183,17 +189,10 @@ export class IdentityRepository {
   }
 
   async clearThrottle(key: string) {
-    await this.db
-      .deleteFrom("identity_throttles")
-      .where("key", "=", key)
-      .execute();
+    await this.db.deleteFrom("identity_throttles").where("key", "=", key).execute();
   }
 
-  async changePassword(
-    userId: string,
-    expectedHash: string,
-    passwordHash: string,
-  ) {
+  async changePassword(userId: string, expectedHash: string, passwordHash: string) {
     return this.db.transaction().execute(async (trx) => {
       checkIdentityRequest();
       const result = await trx
@@ -203,10 +202,7 @@ export class IdentityRepository {
         .where("password_hash", "=", expectedHash)
         .executeTakeFirst();
       if (result.numUpdatedRows !== 1n) return false;
-      await trx
-        .deleteFrom("identity_sessions")
-        .where("user_id", "=", userId)
-        .execute();
+      await trx.deleteFrom("identity_sessions").where("user_id", "=", userId).execute();
       return true;
     });
   }

@@ -21,8 +21,6 @@ export function digest(value: string) {
 }
 function derive(password: string, salt: string): Promise<Buffer> {
   return new Promise((resolve, reject) =>
-    scrypt(password, salt, 64, options, (error, key) =>
-      error ? reject(error) : resolve(key),
-    ),
+    scrypt(password, salt, 64, options, (error, key) => (error ? reject(error) : resolve(key)))
   );
 }

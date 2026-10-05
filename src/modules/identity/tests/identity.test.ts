@@ -1,12 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hashPassword, verifyPassword } from "./identity.password.js";
-import { loginSchema, accountSchema } from "./identity.schema.js";
+import { hashPassword, verifyPassword } from "../user/user.password.js";
+import { loginSchema, accountSchema } from "../user/user.schema.js";
 import { IdentityError } from "../../index.js";
-import {
-  organizationCreateSchema,
-  resourceIdSchema,
-} from "./identity.administration-schema.js";
+import { organizationCreateSchema, resourceIdSchema } from "../identity.administration-schema.js";
 
 test("public IdentityError exposes a safe stable status and copied field contract", () => {
   const fields = { name: ["Enter a name."] };
@@ -36,31 +33,25 @@ test("password hashes are salted and reject incorrect passwords", async () => {
 test("login rejects role injection and malformed fields", () => {
   for (const id of [".", "..", "..."]) {
     assert.equal(resourceIdSchema.safeParse(id).success, false);
-    assert.equal(
-      organizationCreateSchema.safeParse({ id, name: "Invalid" }).success,
-      false,
-    );
+    assert.equal(organizationCreateSchema.safeParse({ id, name: "Invalid" }).success, false);
   }
   assert.equal(
     loginSchema.safeParse({
       email: "user@example.test",
       password: "x",
-      role: "super-admin",
+      role: "super-admin"
     }).success,
-    false,
+    false
   );
-  assert.equal(
-    loginSchema.safeParse({ email: "bad", password: "x" }).success,
-    false,
-  );
+  assert.equal(loginSchema.safeParse({ email: "bad", password: "x" }).success, false);
   assert.equal(
     accountSchema.safeParse({
       email: "user@example.test",
       name: "User",
       password: "short",
       portal: "user",
-      tenantId: "default",
+      tenantId: "default"
     }).success,
-    false,
+    false
   );
 });

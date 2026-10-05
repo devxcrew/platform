@@ -25,42 +25,29 @@ export const identityMigration: Migration = {
       .execute();
     await db.schema
       .createTable("identity_role_permissions")
-      .addColumn("role_id", "text", (c) =>
-        c.notNull().references("identity_roles.id"),
-      )
-      .addColumn("permission_id", "text", (c) =>
-        c.notNull().references("identity_permissions.id"),
-      )
-      .addPrimaryKeyConstraint("identity_role_permission_pk", [
-        "role_id",
-        "permission_id",
-      ])
+      .addColumn("role_id", "text", (c) => c.notNull().references("identity_roles.id"))
+      .addColumn("permission_id", "text", (c) => c.notNull().references("identity_permissions.id"))
+      .addPrimaryKeyConstraint("identity_role_permission_pk", ["role_id", "permission_id"])
       .execute();
     await db.schema
       .createTable("identity_memberships")
       .addColumn("user_id", "text", (c) =>
-        c.notNull().references("identity_users.id").onDelete("cascade"),
+        c.notNull().references("identity_users.id").onDelete("cascade")
       )
       .addColumn("tenant_id", "text", (c) =>
-        c.notNull().references("identity_tenants.id").onDelete("cascade"),
+        c.notNull().references("identity_tenants.id").onDelete("cascade")
       )
-      .addColumn("role_id", "text", (c) =>
-        c.notNull().references("identity_roles.id"),
-      )
-      .addPrimaryKeyConstraint("identity_membership_pk", [
-        "user_id",
-        "tenant_id",
-        "role_id",
-      ])
+      .addColumn("role_id", "text", (c) => c.notNull().references("identity_roles.id"))
+      .addPrimaryKeyConstraint("identity_membership_pk", ["user_id", "tenant_id", "role_id"])
       .execute();
     await db.schema
       .createTable("identity_sessions")
       .addColumn("token_hash", "text", (c) => c.primaryKey())
       .addColumn("user_id", "text", (c) =>
-        c.notNull().references("identity_users.id").onDelete("cascade"),
+        c.notNull().references("identity_users.id").onDelete("cascade")
       )
       .addColumn("tenant_id", "text", (c) =>
-        c.notNull().references("identity_tenants.id").onDelete("cascade"),
+        c.notNull().references("identity_tenants.id").onDelete("cascade")
       )
       .addColumn("app_id", "text", (c) => c.notNull())
       .addColumn("portal", "text", (c) => c.notNull())
@@ -87,8 +74,8 @@ export const identityMigration: Migration = {
       "identity_permissions",
       "identity_roles",
       "identity_tenants",
-      "identity_users",
+      "identity_users"
     ])
       await db.schema.dropTable(table).execute();
-  },
+  }
 };

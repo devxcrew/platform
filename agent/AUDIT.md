@@ -205,3 +205,19 @@ Authenticated MCP passed before work. New or expanded three-OS CI requires actua
 
 
 Three-OS source CI passed: GitHub Actions run 37202025119 on Node 26.10.0 and npm 12.2.0.
+
+## Dependency alignment - 2026-10-05
+
+- [x] Align consumed shared packages and common direct dependency versions.
+- [x] Install dependencies with lifecycle scripts disabled.
+- [x] Keep app dependency ownership and public peer ranges.
+- [x] Exclude Veyrezio from this change.
+
+Source version: 0.1.3. Published package archives retain their existing versions.
+The baseline is recorded in projects/cxsun/agent/DEPENDENCY-BASELINE.json.
+
+## Identity module organization - 2026-10-05
+
+Moved identity user, role, user-role, permission, and role-permission implementations, schemas, migrations, and checks into owner folders under `src/modules/identity`. Adopted CXApp's flat, filename-prefixed module layout and formatting settings. Moved account/profile schemas to the user owner, retained Platform's provider contract as the module registration boundary, and updated root exports and imports.
+
+Verification: `node node_modules/typescript/bin/tsc -p tsconfig.json`, Prettier `--check`, and `git diff --check` passed. Identity tests were not run.

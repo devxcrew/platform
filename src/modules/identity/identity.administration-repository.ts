@@ -1,19 +1,12 @@
 import { sql, type Kysely, type RawBuilder } from "kysely";
 import { IdentityError } from "./identity.error.js";
 import type { IdentitySchema, Principal } from "./identity.types.js";
-import type {
-  IdentityListQuery,
-  IdentityResource,
-} from "./identity.administration-schema.js";
+import type { IdentityListQuery, IdentityResource } from "./identity.administration-schema.js";
 
 export class IdentityAdministrationRepository {
   constructor(private readonly db: Kysely<IdentitySchema>) {}
 
-  async list(
-    actor: Principal,
-    resource: IdentityResource,
-    query: IdentityListQuery,
-  ) {
+  async list(actor: Principal, resource: IdentityResource, query: IdentityListQuery) {
     const source = this.source(actor, resource);
     const fields =
       resource === "users"
@@ -24,32 +17,23 @@ export class IdentityAdministrationRepository {
             ? ["id", "userName", "organizationName", "roleName"]
             : ["id"];
     if (!fields.includes(query.sort))
-      throw new IdentityError(
-        422,
-        "This sort field is not supported for this resource.",
-      );
+      throw new IdentityError(422, "This sort field is not supported for this resource.");
     const search = query.search
       ? sql`where ${sql.join(
           fields.map(
             (field) =>
-              sql`lower(cast(${sql.ref(field)} as text)) like ${`%${query.search.toLowerCase()}%`}`,
+              sql`lower(cast(${sql.ref(field)} as text)) like ${`%${query.search.toLowerCase()}%`}`
           ),
-          sql` or `,
+          sql` or `
         )}`
       : sql``;
     const count = await sql<{
       total: number;
-    }>`select count(*) as total from (${source}) as resources ${search}`.execute(
-      this.db,
-    );
+    }>`select count(*) as total from (${source}) as resources ${search}`.execute(this.db);
     const sort = query.sort;
-    const rows = await sql<
-      Record<string, unknown>
-    >`select * from (${source}) as resources ${search}
+    const rows = await sql<Record<string, unknown>>`select * from (${source}) as resources ${search}
       order by ${sql.ref(sort)} ${query.direction === "asc" ? sql`asc` : sql`desc`}, id asc
-      limit ${query.perPage} offset ${(query.page - 1) * query.perPage}`.execute(
-      this.db,
-    );
+      limit ${query.perPage} offset ${(query.page - 1) * query.perPage}`.execute(this.db);
     const total = Number(count.rows[0].total);
     return {
       data: rows.rows.map((row) => this.present(resource, row)),
@@ -57,8 +41,8 @@ export class IdentityAdministrationRepository {
         page: query.page,
         perPage: query.perPage,
         total,
-        lastPage: Math.max(1, Math.ceil(total / query.perPage)),
-      },
+        lastPage: Math.max(1, Math.ceil(total / query.perPage))
+      }
     };
   }
 
@@ -66,15 +50,12 @@ export class IdentityAdministrationRepository {
     const result = await sql<
       Record<string, unknown>
     >`select * from (${this.source(actor, resource)}) as resources where id = ${id} limit 1`.execute(
-      this.db,
+      this.db
     );
     return result.rows[0] ? this.present(resource, result.rows[0]) : undefined;
   }
 
-  private source(
-    actor: Principal,
-    resource: IdentityResource,
-  ): RawBuilder<unknown> {
+  private source(actor: Principal, resource: IdentityResource): RawBuilder<unknown> {
     const global = actor.portal === "super-admin";
     if (resource === "users")
       return sql`select u.id,u.name,u.email,u.active,u.version from identity_users u
@@ -115,24 +96,21 @@ export class IdentityAdministrationRepository {
   }
 
   private present(resource: IdentityResource, row: Record<string, unknown>) {
-    if (resource === "permissions") return { ...row, portals: JSON.parse(String(row.portals)) as string[] };
+    if (resource === "permissions")
+      return { ...row, portals: JSON.parse(String(row.portals)) as string[] };
     if (resource === "roles")
       return {
         ...row,
         version: Number(row.version),
         active: Boolean(row.active),
         system: Boolean(row.system),
-        permissionIds: JSON.parse(String(row.permissionIds)) as string[],
+        permissionIds: JSON.parse(String(row.permissionIds)) as string[]
       };
-    if (
-      resource === "users" ||
-      resource === "organizations" ||
-      resource === "memberships"
-    )
+    if (resource === "users" || resource === "organizations" || resource === "memberships")
       return {
         ...row,
         active: Boolean(row.active),
-        version: Number(row.version),
+        version: Number(row.version)
       };
     return row;
   }

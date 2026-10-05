@@ -1,5 +1,5 @@
-import type { Generated } from "kysely";
-import type { IdentityPermissionDeclaration } from "./identity.permission-declarations.js";
+import type { Generated, Transaction } from "kysely";
+import type { IdentityPermissionDeclaration } from "./permission/index.js";
 export type Portal = "user" | "admin" | "super-admin";
 export interface IdentityPermissionCatalogEntry {
   id: string;
@@ -22,8 +22,21 @@ export interface Principal {
   tenant: { id: string; name: string };
   permissions: string[];
 }
+export type IdentityMutation = <T>(
+  actor: Principal,
+  resource: string,
+  id: string,
+  action: (trx: Transaction<IdentitySchema>, id: string) => Promise<T>,
+  affectedTenant?: string
+) => Promise<T>;
 export interface IdentitySchema {
-  identity_permission_declarations: { permission_id: string; app_id: string; owner: string; portals: string; label: Generated<string | null> };
+  identity_permission_declarations: {
+    permission_id: string;
+    app_id: string;
+    owner: string;
+    portals: string;
+    label: Generated<string | null>;
+  };
   identity_app_settings: {
     app_id: string;
     display_name: string;

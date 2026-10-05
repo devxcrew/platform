@@ -4,7 +4,7 @@ import type { IdentitySchema, Principal } from "./identity.types.js";
 export class IdentityPresentationService {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
-    private readonly appName: string,
+    private readonly appName: string
   ) {}
 
   async configuration(appId: string, requiresOrganizationId: boolean) {
@@ -15,7 +15,7 @@ export class IdentityPresentationService {
       .executeTakeFirst();
     return {
       displayName: app?.display_name ?? this.appName,
-      requiresOrganizationId,
+      requiresOrganizationId
     };
   }
 
@@ -34,7 +34,7 @@ export class IdentityPresentationService {
       displayName: app?.display_name ?? this.appName,
       organizationDisplayName: organization?.display_name ?? actor.tenant.name,
       locale: organization?.locale ?? app?.locale ?? "en",
-      timeZone: organization?.time_zone ?? app?.time_zone ?? "UTC",
+      timeZone: organization?.time_zone ?? app?.time_zone ?? "UTC"
     };
   }
 
@@ -49,7 +49,7 @@ export class IdentityPresentationService {
       displayName: presentation.organizationDisplayName,
       locale: presentation.locale,
       timeZone: presentation.timeZone,
-      version: Number(organization?.version ?? 0),
+      version: Number(organization?.version ?? 0)
     };
   }
 }

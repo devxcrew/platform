@@ -1,12 +1,12 @@
 import type { Transaction } from "kysely";
-import type { IdentitySchema } from "./identity.types.js";
-import { IdentityError } from "./identity.error.js";
+import type { IdentitySchema } from "../identity.types.js";
+import { IdentityError } from "../identity.error.js";
 
 export async function protectAdministrators(
   trx: Transaction<IdentitySchema>,
   userId: string,
   tenantId?: string,
-  roleId?: string,
+  roleId?: string
 ) {
   let query = trx
     .selectFrom("identity_memberships")
@@ -30,7 +30,7 @@ export async function protectAdministrators(
     if (!peer)
       throw new IdentityError(
         409,
-        "Keep at least one active administrator for this role and organization.",
+        "Keep at least one active administrator for this role and organization."
       );
   }
 }
