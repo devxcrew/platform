@@ -2,11 +2,23 @@
 
 ## Version State
 
-Current version: 0.1.4
+Current version: 0.1.5
 
-Release tag: v-0.1.4
+Release tag: v-0.1.5
 
-Changelog label: v 0.1.4
+Changelog label: v 0.1.5
+
+## v-0.1.5
+
+### [v 0.1.5] 2026-10-05 9:40 am - Fix identity test exports
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Import identity schemas from their owning public modules.
 
 ## v-0.1.4
 
