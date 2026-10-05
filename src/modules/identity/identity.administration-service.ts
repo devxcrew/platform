@@ -1,15 +1,10 @@
 import type { IdentityPermissionProvider } from "./permission/index.js";
-import {
-  createIdentityRolePermissionProvider,
-  type IdentityRolePermissionProvider
-} from "./role-permission/index.js";
 import { IdentityAdministrationRepository } from "./identity.administration-repository.js";
 import {
   createIdentityRoleProvider,
   type IdentityRoleProvider,
   customRoleCreateSchema,
-  customRoleUpdateSchema,
-  roleUpdateSchema
+  customRoleUpdateSchema
 } from "./role/index.js";
 import {
   createIdentityUserRoleProvider,
@@ -34,7 +29,6 @@ export class IdentityAdministrationService {
   private readonly repository: IdentityAdministrationRepository;
   private readonly roles: IdentityRoleProvider;
   private readonly userRoles: IdentityUserRoleProvider;
-  private readonly rolePermissions: IdentityRolePermissionProvider;
   private readonly userAdministration: ReturnType<typeof createIdentityUserAdministrationProvider>;
   private readonly mutations: IdentityMutationService;
   private readonly presentationService: IdentityPresentationService;
@@ -44,8 +38,8 @@ export class IdentityAdministrationService {
     private readonly permissions: IdentityPermissionProvider
   ) {
     this.repository = new IdentityAdministrationRepository(db);
-    this.roles = createIdentityRoleProvider(db, permissions);
     this.mutations = new IdentityMutationService(db);
+    this.roles = createIdentityRoleProvider(db, permissions, this.mutations.mutate);
     this.userRoles = createIdentityUserRoleProvider(
       db,
       this.roles.resolve,
@@ -61,7 +55,6 @@ export class IdentityAdministrationService {
       this.userRoles,
       this.mutations.mutate
     );
-    this.rolePermissions = createIdentityRolePermissionProvider(permissions);
     this.presentationService = new IdentityPresentationService(db, appName);
   }
 
@@ -111,6 +104,7 @@ export class IdentityAdministrationService {
     if (resource === "memberships") return this.userRoles.updateMembership(actor, id, raw);
     if (resource === "roles" && !["user", "admin", "super-admin"].includes(id))
       return this.roles.update(actor, id, raw);
+    if (resource === "roles") return this.roles.updateSystemPermissions(actor, id, raw);
     this.allow(actor, resource, true);
     await this.show(actor, resource, id);
     if (resource === "users") return this.userAdministration.update(actor, id, raw);
@@ -146,28 +140,6 @@ export class IdentityAdministrationService {
           ...row,
           active: Boolean(row.active),
           version: Number(row.version)
-        };
-      });
-    }
-    if (resource === "roles") {
-      const input = roleUpdateSchema.parse(raw);
-      return this.mutations.mutate(actor, resource, id, async (trx) => {
-        const current = await trx
-          .selectFrom("identity_roles")
-          .select("version")
-          .where("id", "=", id)
-          .executeTakeFirstOrThrow();
-        this.revision(current.version, input.expectedVersion);
-        await this.rolePermissions.replaceSystem(trx, id, actor.appId, input.permissionIds);
-        await trx
-          .updateTable("identity_roles")
-          .set({ version: sql`version + 1` })
-          .where("id", "=", id)
-          .execute();
-        return {
-          id,
-          permissionIds: [...new Set(input.permissionIds)],
-          version: input.expectedVersion + 1
         };
       });
     }

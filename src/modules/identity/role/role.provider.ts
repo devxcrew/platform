@@ -4,7 +4,10 @@ import type { IdentityPermissionProvider } from "../permission/index.js";
 import { createIdentityRolePermissionProvider } from "../role-permission/index.js";
 import { IdentityRolesService } from "./role.service.js";
 
-export type IdentityRoleProvider = Pick<IdentityRolesService, "resolve" | "create" | "update" | "updateSystemPermissions">;
+export type IdentityRoleProvider = Pick<
+  IdentityRolesService,
+  "resolve" | "create" | "update" | "updateSystemPermissions"
+>;
 
 export function createIdentityRoleProvider(
   database: Kysely<IdentitySchema>,
