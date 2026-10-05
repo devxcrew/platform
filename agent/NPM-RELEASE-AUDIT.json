@@ -4,14 +4,19 @@
   "sourceVersion": "0.1.6",
   "tests": 27,
   "releaseChecks": "passed",
-  "registryStatus": "publication-in-progress",
+  "registryStatus": "latest-and-checksum-verified",
   "deferred": [
     "production deployment",
     "real SMTP delivery"
   ],
   "artifact": {
     "filename": "devxcrew-platform-0.1.6.tgz",
-    "shasum": "f377aeb8a90306d8025d569c04acd86199a43b1f",
-    "integrity": "sha512-p7U5H4jQhcj5lkT5t72d8Z8Jc1k3XhAxSUM4XCPLbjeEJu9y6FlKl31NOu0Qg06Znf6WnlfoDnQ/uSdm/DhQfA=="
+    "shasum": "afd1b89f4c213d8d7d2b1cbc6c1cf0c0b9a8370f",
+    "integrity": "sha512-UuZMKc8NceKxEv8CUWD2rlOlDQTOS4hWkWArvjiWuDiWGxvZHCS2To7vMA88moeiHVKChWakpwxfhiq1I6wa8Q=="
+  },
+  "registry": {
+    "version": "0.1.6",
+    "dist.shasum": "afd1b89f4c213d8d7d2b1cbc6c1cf0c0b9a8370f",
+    "dist.integrity": "sha512-UuZMKc8NceKxEv8CUWD2rlOlDQTOS4hWkWArvjiWuDiWGxvZHCS2To7vMA88moeiHVKChWakpwxfhiq1I6wa8Q=="
   }
 }
