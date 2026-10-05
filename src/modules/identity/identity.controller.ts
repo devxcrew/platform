@@ -1,24 +1,18 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ZodError } from "zod";
-import {
-  portalSchema,
-  IdentityUserLifecycleController,
-  userLifecyclePaths
-} from "../user/index.js";
-import { settingsPaths } from "../settings/index.js";
-import { IdentitySessionAuthenticationController } from "../session/index.js";
-import type { IdentityUserProvider } from "../user/index.js";
-import { IdentityError } from "../support/identity.error.js";
+import { portalSchema, IdentityUserLifecycleController, userLifecyclePaths } from "./user/index.js";
+import { settingsPaths } from "./settings/index.js";
+import { IdentitySessionAuthenticationController } from "./session/index.js";
+import type { IdentityUserProvider } from "./user/index.js";
+import { IdentityError } from "./support/identity.error.js";
 import { identityRoutes, portalRoutes } from "./identity.routes.js";
-import type { IdentityConfig, Portal } from "../identity.types.js";
-import { IdentityAdministrationComposition } from "../composition/identity.composition.js";
-import {
-  resourceListQuerySchema
-} from "../support/pagination.schema.js";
-import { membershipDeleteQuerySchema } from "../user-role/index.js";
-import { resourceIdSchema } from "../support/identity.schema.js";
+import type { IdentityConfig, Portal } from "./identity.types.js";
+import { IdentityAdministrationComposition } from "./composition/identity.composition.js";
+import { resourceListQuerySchema } from "./support/pagination.schema.js";
+import { membershipDeleteQuerySchema } from "./user-role/index.js";
+import { resourceIdSchema } from "./support/identity.schema.js";
 
-import { checkIdentityRequest, runIdentityRequest } from "../support/identity.request-context.js";
+import { checkIdentityRequest, runIdentityRequest } from "./support/identity.request-context.js";
 
 export class IdentityController {
   private readonly authentication: IdentitySessionAuthenticationController;
@@ -328,9 +322,9 @@ export class IdentityController {
 
   private requireAction(
     action:
-      | ((actor: import("../identity.types.js").Principal, raw: unknown) => Promise<unknown>)
+      | ((actor: import("./identity.types.js").Principal, raw: unknown) => Promise<unknown>)
       | undefined,
-    actor: import("../identity.types.js").Principal,
+    actor: import("./identity.types.js").Principal,
     raw: unknown
   ) {
     if (!action) throw new IdentityError(405, "Creation is not supported for this resource.");
@@ -340,12 +334,12 @@ export class IdentityController {
   private requireUpdate(
     action:
       | ((
-          actor: import("../identity.types.js").Principal,
+          actor: import("./identity.types.js").Principal,
           id: string,
           raw: unknown
         ) => Promise<unknown>)
       | undefined,
-    actor: import("../identity.types.js").Principal,
+    actor: import("./identity.types.js").Principal,
     id: string,
     raw: unknown
   ) {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Kysely } from "kysely";
 import { createIdentityUserProvider } from "./user/index.js";
-import { IdentityController } from "./transport/identity.controller.js";
+import { IdentityController } from "./identity.controller.js";
 import type { IdentitySchema, IdentityProviderOptions } from "./identity.types.js";
 import { IdentityAdministrationComposition } from "./composition/identity.composition.js";
 import { identityKeySchema } from "./user/index.js";

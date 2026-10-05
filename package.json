@@ -61,6 +61,6 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@devxcrew/framework": ">=0.1.11 <1"
+    "@devxcrew/framework": ">=0.1.12 <1"
   }
 }

@@ -21,6 +21,16 @@ Changelog label: v 0.1.6
 
 ## v-0.1.6
 
+### [v 0.1.6] 2026-10-05 8:27 pm - Release tenant scope and canonical identity composition
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Audit identity and tenant owners, move identity controller and routes to canonical files, and require Framework 0.1.12 database contracts. Local SQLite tests pass. Production acceptance remains separate.
+
 ### [v 0.1.6] 2026-10-05 7:35 pm - Extract module-owned tenancy
 
 #### Database Changes

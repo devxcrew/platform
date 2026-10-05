@@ -301,3 +301,13 @@ Extract module-owned tenancy.
 Platform owns tenant mappings, scope middleware and provisioning through public Framework and identity contracts. Verify passed: 27 tests, build and package dry run. CI now checks out and builds its sibling Framework dependency.
 
 Live authenticated governance connected. Local release checks passed. Commit and push authorized through github:now. Versions remain unchanged; npm publication is pending. GitHub Actions results must be checked after push. Secrets, runtime storage and caches are excluded.
+
+## npm release audit - 2026-10-05
+
+- [x] Retrieve authenticated live governance.
+- [x] Review public exports, dependency ownership and release artifact scope.
+- [x] Run owner release checks.
+- [ ] Verify registry installation and the latest tag.
+
+Source version: 0.1.6. SMTP and deployment acceptance remain deferred.
+Tools 0.1.9 already matches its published archive and needs no republish.

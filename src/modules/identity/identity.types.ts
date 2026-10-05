@@ -39,7 +39,8 @@ export type IdentityMutation = <T>(
   affectedTenant?: string
 ) => Promise<T>;
 export interface IdentitySchema
-  extends IdentityUserTables,
+  extends
+    IdentityUserTables,
     IdentityOrganizationTables,
     IdentityRoleTables,
     IdentityPermissionTables,
