@@ -1,6 +1,4 @@
 import { z } from "zod";
-export { organizationCreateSchema, organizationUpdateSchema } from "../organization/organization.schema.js";
-export { settingsSchema, securitySettingsSchema } from "../settings/settings.schema.js";
 
 export const listSchema = z
   .object({

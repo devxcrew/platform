@@ -1,7 +1,7 @@
 import { verifyRoles } from "./role.checks.js";
 import assert from "node:assert/strict";
 import type { Kysely } from "kysely";
-import type { IdentitySchema, IdentityProviderOptions, Portal } from "../identity.types.js";
+import type { IdentitySchema, IdentityProviderOptions, Portal } from "../../identity.types.js";
 const password = "Test-only strong password!";
 
 type Request = (

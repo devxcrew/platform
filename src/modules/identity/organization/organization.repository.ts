@@ -7,6 +7,8 @@ function organizationListSource(actor: Principal) {
   return sql`select id,name,active,version from identity_tenants ${actor.portal === "super-admin" ? sql`` : sql`where id=${actor.tenant.id}`}`;
 }
 
+export const organizationNameSource = () => sql`select id,name from identity_tenants`;
+
 export class IdentityOrganizationRepository {
   constructor(private readonly db: Kysely<IdentitySchema>) {}
 
@@ -17,6 +19,23 @@ export class IdentityOrganizationRepository {
   async tenantIds(trx: Transaction<IdentitySchema>) {
     const rows = await trx.selectFrom("identity_tenants").select("id").execute();
     return rows.map((row) => row.id);
+  }
+
+  active(trx: Transaction<IdentitySchema>, id: string) {
+    return trx
+      .selectFrom("identity_tenants")
+      .select("id")
+      .where("id", "=", id)
+      .where("active", "=", 1)
+      .executeTakeFirst();
+  }
+  activeDetail(db: Kysely<IdentitySchema>, id: string) {
+    return db
+      .selectFrom("identity_tenants")
+      .select(["id", "name"])
+      .where("id", "=", id)
+      .where("active", "=", 1)
+      .executeTakeFirst();
   }
 
   list(actor: Principal, query: IdentityListQuery) {

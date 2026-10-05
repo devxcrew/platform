@@ -13,6 +13,7 @@ export function createIdentitySettingsProvider(
   const service = new IdentitySettingsService(repository, appName, mutate, revokeAppSessions);
   return Object.freeze({
     verify: repository.verifySchema.bind(repository),
+    sessionSeconds: repository.sessionSeconds.bind(repository),
     configuration: service.configuration.bind(service),
     presentation: service.presentation.bind(service),
     organizationSettings: service.organizationSettings.bind(service),

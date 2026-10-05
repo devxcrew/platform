@@ -2,11 +2,24 @@
 
 ## Version State
 
-Current version: 0.1.5
+Current version: 0.1.6
 
-Release tag: v-0.1.5
+Release tag: v-0.1.6
 
-Changelog label: v 0.1.5
+Changelog label: v 0.1.6
+
+## v-0.1.6
+
+### [v 0.1.6] 2026-10-05 3:46 pm - Complete identity module ownership
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Move identity behavior, routes, and tests into owner modules and use public provider contracts.
+- Clean the compiled output before TypeScript builds so package archives exclude removed modules.
 
 ## v-0.1.5
 

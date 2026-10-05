@@ -20,6 +20,10 @@ export class IdentityRolesService {
       action: string,
       id: string
     ) => Promise<void>,
+    private readonly activeOrganization: (
+      trx: Transaction<IdentitySchema>,
+      id: string
+    ) => Promise<unknown>,
     private readonly revokeRoleSessions: (
       trx: Transaction<IdentitySchema>,
       appId: string,
@@ -30,12 +34,18 @@ export class IdentityRolesService {
 
   list(actor: Principal, query: IdentityListQuery) {
     if (actor.portal === "user") throw new IdentityError(403, "Access denied.");
-    return listRoles(this.db, actor, query);
+    return listRoles(this.db, actor, query, {
+      system: this.rolePermissions.systemPermissionJson,
+      custom: this.rolePermissions.customPermissionJson
+    });
   }
 
   show(actor: Principal, id: string) {
     if (actor.portal === "user") throw new IdentityError(403, "Access denied.");
-    return showRole(this.db, actor, id);
+    return showRole(this.db, actor, id, {
+      system: this.rolePermissions.systemPermissionJson,
+      custom: this.rolePermissions.customPermissionJson
+    });
   }
 
   async resolve(
@@ -68,12 +78,7 @@ export class IdentityRolesService {
     this.scope(actor, tenantId);
     return this.db.transaction().execute(async (trx) => {
       checkIdentityRequest();
-      const tenant = await trx
-        .selectFrom("identity_tenants")
-        .select("id")
-        .where("id", "=", tenantId)
-        .where("active", "=", 1)
-        .executeTakeFirst();
+      const tenant = await this.activeOrganization(trx, tenantId);
       if (!tenant) throw new IdentityError(422, "Organization is inactive or unavailable.");
       await this.rolePermissions.validate(trx, input.permissionIds, actor.appId);
       await this.uniqueName(trx, actor.appId, tenantId, input.name);
@@ -136,11 +141,7 @@ export class IdentityRolesService {
       if (input.permissionIds) await this.rolePermissions.replace(trx, id, input.permissionIds);
       await this.revokeRoleSessions(trx, actor.appId, role.tenant_id, id);
       await this.audit(trx, actor, role.tenant_id, "identity.role.changed", id);
-      const permissions = await trx
-        .selectFrom("identity_custom_role_permissions")
-        .select("permission_id")
-        .where("role_id", "=", id)
-        .execute();
+      const permissions = await this.rolePermissions.permissionIds(trx, id, true);
       checkIdentityRequest();
       return {
         id,
@@ -150,7 +151,7 @@ export class IdentityRolesService {
         system: false,
         active: input.active ?? Boolean(role.active),
         version: input.expectedVersion + 1,
-        permissionIds: permissions.map((row) => row.permission_id)
+        permissionIds: permissions
       };
     });
   }

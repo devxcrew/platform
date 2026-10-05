@@ -16,7 +16,7 @@ test("public browser schemas load without database or Node runtime dependencies"
       throw new Error('Required public schemas are absent.');
   `;
   const result = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
-    cwd: new URL("../../../../", import.meta.url),
+    cwd: new URL("../../../../../", import.meta.url),
     encoding: "utf8",
     timeout: 30_000,
     windowsHide: true,

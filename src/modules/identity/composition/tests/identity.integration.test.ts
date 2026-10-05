@@ -1,6 +1,6 @@
 import { verifyAdministration } from "./identity.administration.checks.js";
 import { verifyListPerformance } from "./identity.performance.checks.js";
-import { runIdentityRequest } from "../support/identity.request-context.js";
+import { runIdentityRequest } from "../../support/identity.request-context.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -10,14 +10,14 @@ import { createServer } from "node:http";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { Kysely, SqliteDialect } from "kysely";
 import { Migrator } from "kysely/migration";
-import { createIdentityProvider } from "../identity.provider.js";
-import { identityMigration } from "../legacy/identity.migration.js";
-import { identityAdministrationMigration } from "../legacy/identity.administration-migration.js";
-import { identityRolesMigration } from "../role/role.migration.js";
-import { identityPermissionDeclarationsMigration } from "../permission/permission.declarations.migration.js";
-import { identityPermissionLabelsMigration } from "../permission/permission.labels.migration.js";
-import { seedIdentity } from "../../../index.js";
-import type { IdentitySchema, Portal } from "../identity.types.js";
+import { createIdentityProvider } from "../../identity.provider.js";
+import { identityMigration } from "../../legacy/identity.migration.js";
+import { identityAdministrationMigration } from "../../legacy/identity.administration-migration.js";
+import { identityRolesMigration } from "../../role/role.migration.js";
+import { identityPermissionDeclarationsMigration } from "../../permission/permission.declarations.migration.js";
+import { identityPermissionLabelsMigration } from "../../permission/permission.labels.migration.js";
+import { seedIdentity } from "../../../../index.js";
+import type { IdentitySchema, Portal } from "../../identity.types.js";
 
 const password = "Test-only strong password!";
 

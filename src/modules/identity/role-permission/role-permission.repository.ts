@@ -1,4 +1,4 @@
-import type { Kysely, Transaction } from "kysely";
+import { sql, type Kysely, type RawBuilder, type Transaction } from "kysely";
 import type { IdentitySchema } from "../identity.types.js";
 
 export class IdentityRolePermissionRepository {
@@ -15,6 +15,17 @@ export class IdentityRolePermissionRepository {
       .select("permission_id")
       .limit(1)
       .execute();
+  }
+  async permissionIds(db: Kysely<IdentitySchema>, roleId: string, custom: boolean) {
+    const table = custom
+      ? ("identity_custom_role_permissions" as const)
+      : ("identity_role_permissions" as const);
+    const rows = await db
+      .selectFrom(table)
+      .select("permission_id")
+      .where("role_id", "=", roleId)
+      .execute();
+    return rows.map((row) => row.permission_id);
   }
   async replaceCustom(trx: Transaction<IdentitySchema>, roleId: string, ids: string[]) {
     await trx
@@ -37,3 +48,8 @@ export class IdentityRolePermissionRepository {
         .execute();
   }
 }
+
+export const systemPermissionJson = (roleId: RawBuilder<unknown>) =>
+  sql`(select json_group_array(permission_id) from identity_role_permissions p where p.role_id=${roleId})`;
+export const customPermissionJson = (roleId: RawBuilder<unknown>) =>
+  sql`(select json_group_array(permission_id) from identity_custom_role_permissions p where p.role_id=${roleId})`;

@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { sql, type Kysely, type Transaction } from "kysely";
+import { sql, type Kysely, type RawBuilder, type Transaction } from "kysely";
 import { IdentityError } from "../support/identity.error.js";
 import type { IdentityMutation, IdentitySchema, Principal } from "../identity.types.js";
 import type { IdentityRoleResolver } from "../role/index.js";
-import { protectAdministrators } from "../user-role/index.js";
 import type { IdentityUserRoleProvider } from "../user-role/index.js";
 import { hashPassword } from "./user.password.js";
 import { profileSchema, userCreateSchema, userUpdateSchema } from "./user.schema.js";
@@ -13,19 +12,33 @@ import type { IdentityListQuery } from "../support/pagination.schema.js";
 export class IdentityUserAdministrationService {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
+    private readonly visibility: (
+      actor: Principal,
+      userId: RawBuilder<unknown>
+    ) => RawBuilder<unknown>,
     private readonly resolveRole: IdentityRoleResolver,
     private readonly assignInitialMembership: IdentityUserRoleProvider["assignInitialMembership"],
-    private readonly mutate: IdentityMutation
+    private readonly mutate: IdentityMutation,
+    private readonly activeOrganization: (
+      trx: Transaction<IdentitySchema>,
+      id: string
+    ) => Promise<unknown>,
+    private readonly isManageableUser: IdentityUserRoleProvider["isManageableUser"],
+    private readonly protectAdministrators: IdentityUserRoleProvider["protectAdministrators"],
+    private readonly revokeUserSessions: (
+      trx: Transaction<IdentitySchema>,
+      userId: string
+    ) => Promise<void>
   ) {}
 
   list(actor: Principal, query: IdentityListQuery) {
     this.manage(actor);
-    return listUsers(this.db, actor, query);
+    return listUsers(this.db, query, this.visibility(actor, sql.ref("u.id")));
   }
 
   show(actor: Principal, id: string) {
     this.manage(actor);
-    return showUser(this.db, actor, id);
+    return showUser(this.db, id, this.visibility(actor, sql.ref("u.id")));
   }
 
   async create(actor: Principal, raw: unknown) {
@@ -78,8 +91,8 @@ export class IdentityUserAdministrationService {
       this.revision(current.version, input.expectedVersion);
       if (actor.portal !== "super-admin") await this.unprivilegedUser(trx, id);
       if (input.active === false) {
-        await protectAdministrators(trx, id);
-        await trx.deleteFrom("identity_sessions").where("user_id", "=", id).execute();
+        await this.protectAdministrators(trx, id);
+        await this.revokeUserSessions(trx, id);
       }
       if (
         input.email &&
@@ -150,33 +163,15 @@ export class IdentityUserAdministrationService {
   }
 
   private async activeTenant(trx: Transaction<IdentitySchema>, id: string) {
-    if (
-      !(await trx
-        .selectFrom("identity_tenants")
-        .select("id")
-        .where("id", "=", id)
-        .where("active", "=", 1)
-        .executeTakeFirst())
-    )
+    if (!(await this.activeOrganization(trx, id)))
       throw new IdentityError(422, "Organization is inactive or unavailable.");
   }
 
   private async unprivilegedUser(trx: Transaction<IdentitySchema>, id: string) {
-    const privileged = await trx
-      .selectFrom("identity_memberships")
-      .select("role_id")
-      .where("user_id", "=", id)
-      .where("role_id", "in", ["admin", "super-admin"])
-      .executeTakeFirst();
-    if (privileged)
+    const scope = await this.isManageableUser(trx, id);
+    if (scope === "privileged")
       throw new IdentityError(403, "Only super administrators can change privileged accounts.");
-    const tenants = await trx
-      .selectFrom("identity_memberships")
-      .select("tenant_id")
-      .where("user_id", "=", id)
-      .distinct()
-      .execute();
-    if (tenants.length > 1)
+    if (scope === "shared")
       throw new IdentityError(403, "Only super administrators can change shared accounts.");
   }
 

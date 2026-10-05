@@ -6,12 +6,9 @@ export { identityRolesMigration } from "./role/index.js";
 export { identityPermissionDeclarationsMigration } from "./permission/index.js";
 export { identityPermissionLabelsMigration } from "./permission/index.js";
 export type { IdentityPermissionDeclaration } from "./permission/index.js";
-export {
-  listSchema,
-  organizationCreateSchema,
-  organizationUpdateSchema,
-  settingsSchema
-} from "./support/pagination.schema.js";
+export { listSchema } from "./support/pagination.schema.js";
+export { organizationCreateSchema, organizationUpdateSchema } from "./organization/index.js";
+export { settingsSchema } from "./settings/index.js";
 export { userCreateSchema, userUpdateSchema, profileSchema } from "./user/index.js";
 export {
   membershipSchema,

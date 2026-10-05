@@ -242,6 +242,18 @@ Authenticated `npm run mcp:connect` succeeded before this work. `npm run build` 
 
 Audit targeting now uses membership and organization provider lookups. Role and membership changes call audit and session provider contracts for writes within the same transaction. `npm run build` and `git diff --check` passed after these changes.
 
+## Identity owner contracts and routes - 2026-10-05
+
+Authenticated `npm run mcp:connect` succeeded before the implementation. Resource route registrations now originate in owner route files and point to owner controllers. User sign-in and lifecycle work call session, membership, organization, role, role-permission, settings, and audit owner contracts. User, membership, and role list queries compose public owner SQL sources so database pagination and sorting remain intact. Existing historical migrations were not rewritten.
+
+`npm run build`, `npm run check:versions`, and `git diff --check` passed. `npm run lines:check` first found CRLF in `agent/TASK.md`; `npm run fix:line-endings` normalized it. Identity tests were not run in this turn. Runtime behavior remains unverified by this turn's static checks.
+
+After moving composition-level tests into `src/modules/identity/composition/tests`, the browser-schema check initially exposed an accidental omission of settings schemas from the browser-safe public schema entry. Restoring the owner schema exports resolved it. `npm run test` then passed all seven tests: permission declarations, HTTP authentication and tenancy, role rollback, browser schemas, error contract, password hashing, and validation. The file-backed SQLite list benchmark completed five reads of 1,000 rows with a 14.8 ms maximum against its 1,000 ms local budget.
+
+## Release 0.1.6 preparation - 2026-10-05
+
+The npm registry showed `@devxcrew/platform` at 0.1.2. Version 0.1.6 is a new release. `npm run release:check` passed dependency order, version alignment, line ending checks, all seven tests, TypeScript compilation, and package dry run. The first package preview exposed stale compiled files from removed centralized modules. The build now removes `dist` before compilation. The final dry run packed 235 files without the removed central implementation files.
+
 
 ## Shared alignment audit - 2026-10-05
 

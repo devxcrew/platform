@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { IdentityProviderOptions, Portal } from "../identity.types.js";
+import type { IdentityProviderOptions, Portal } from "../../identity.types.js";
 const password = "Test-only strong password!";
 type Request = (
   path: string,

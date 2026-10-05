@@ -39,8 +39,6 @@ export function createIdentityProvider(
   )
     throw new Error("Identity requires HTTPS outside loopback development.");
   const permissions = createIdentityPermissionProvider(database);
-  const user = createIdentityUserProvider(database, config, permissions, options);
-  const service = user.identity;
   const appName = z
     .string()
     .trim()
@@ -48,6 +46,14 @@ export function createIdentityProvider(
     .max(100)
     .parse(environment.APP_NAME || config.appId);
   const administration = new IdentityAdministrationComposition(database, appName, permissions);
+  const user = createIdentityUserProvider(
+    database,
+    config,
+    permissions,
+    administration.userOwnership(),
+    options
+  );
+  const service = user.identity;
   const lifecycle = user.lifecycle;
   const controller = new IdentityController(service, config, administration, lifecycle);
   return {

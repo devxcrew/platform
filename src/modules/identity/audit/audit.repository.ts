@@ -30,15 +30,28 @@ export class IdentityAuditRepository {
     action: string,
     resourceId: string
   ) {
-    await trx
+    await this.recordEvent(trx, {
+      appId: actor.appId,
+      actorId: actor.user.id,
+      tenantId,
+      action,
+      resourceId
+    });
+  }
+
+  async recordEvent(
+    db: Kysely<IdentitySchema>,
+    input: { appId: string; actorId: string; tenantId: string; action: string; resourceId: string }
+  ) {
+    await db
       .insertInto("identity_audit_events")
       .values({
         id: randomUUID(),
-        app_id: actor.appId,
-        actor_id: actor.user.id,
-        tenant_id: tenantId,
-        action,
-        resource_id: resourceId,
+        app_id: input.appId,
+        actor_id: input.actorId,
+        tenant_id: input.tenantId,
+        action: input.action,
+        resource_id: input.resourceId,
         created_at: new Date().toISOString()
       })
       .execute();

@@ -1,6 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ZodError } from "zod";
-import { portalSchema, IdentityUserLifecycleController } from "../user/index.js";
+import {
+  portalSchema,
+  IdentityUserLifecycleController,
+  userLifecyclePaths
+} from "../user/index.js";
+import { settingsPaths } from "../settings/index.js";
 import { IdentitySessionAuthenticationController } from "../session/index.js";
 import type { IdentityUserProvider } from "../user/index.js";
 import { IdentityError } from "../support/identity.error.js";
@@ -8,9 +13,7 @@ import { identityRoutes, portalRoutes } from "./identity.routes.js";
 import type { IdentityConfig, Portal } from "../identity.types.js";
 import { IdentityAdministrationComposition } from "../composition/identity.composition.js";
 import {
-  listSchema,
-  resourceListQuerySchema,
-  type IdentityResource
+  resourceListQuerySchema
 } from "../support/pagination.schema.js";
 import { membershipDeleteQuerySchema } from "../user-role/index.js";
 import { resourceIdSchema } from "../support/identity.schema.js";
@@ -146,7 +149,7 @@ export class IdentityController {
     token: string | undefined,
     path: string
   ) {
-    if (path === "configuration") {
+    if (path === settingsPaths[0]) {
       if (request.method !== "GET") throw new IdentityError(405, "Method not allowed.");
       this.json(response, 200, {
         data: await this.administration.settingsController.configuration(
@@ -156,11 +159,17 @@ export class IdentityController {
       });
       return;
     }
-    if (["recovery", "recovery/complete", "invitations/accept"].includes(path)) {
+    if (
+      [
+        userLifecyclePaths.recovery,
+        userLifecyclePaths.recoveryComplete,
+        userLifecyclePaths.invitationAccept
+      ].some((route) => route === path)
+    ) {
       if (request.method !== "POST") throw new IdentityError(405, "Method not allowed.");
       const raw = await this.body(request);
       const data =
-        path === "recovery"
+        path === userLifecyclePaths.recovery
           ? await this.accounts.requestRecovery(
               portal,
               raw,
@@ -168,28 +177,31 @@ export class IdentityController {
             )
           : await this.accounts.complete(
               portal,
-              path === "recovery/complete" ? "recovery" : "invitation",
+              path === userLifecyclePaths.recoveryComplete ? "recovery" : "invitation",
               raw,
               request.socket.remoteAddress ?? "unknown"
             );
-      this.json(response, path === "recovery" ? 202 : 200, { data });
+      this.json(response, path === userLifecyclePaths.recovery ? 202 : 200, { data });
       return;
     }
     const principal = await this.authentication.authenticate(portal, token);
-    if (path === "presentation") {
+    if (path === settingsPaths[1]) {
       if (request.method !== "GET") throw new IdentityError(405, "Method not allowed.");
       this.json(response, 200, {
         data: await this.administration.settingsController.presentation(principal)
       });
       return;
     }
-    if (path === "invitations" || path.startsWith("invitations/")) {
-      if (path === "invitations" && request.method === "GET") {
+    if (
+      path === userLifecyclePaths.invitations ||
+      path.startsWith(`${userLifecyclePaths.invitations}/`)
+    ) {
+      if (path === userLifecyclePaths.invitations && request.method === "GET") {
         const query = resourceListQuerySchema.parse(
           Object.fromEntries(new URL(request.url!, this.config.origin).searchParams)
         );
         this.json(response, 200, this.wireList(await this.accounts.index(principal, query)));
-      } else if (path === "invitations" && request.method === "POST") {
+      } else if (path === userLifecyclePaths.invitations && request.method === "POST") {
         this.json(response, 201, {
           data: await this.accounts.store(principal, await this.body(request))
         });
@@ -197,51 +209,55 @@ export class IdentityController {
         this.json(response, 200, {
           data: await this.accounts.show(
             principal,
-            resourceIdSchema.parse(path.slice("invitations/".length))
+            resourceIdSchema.parse(path.slice(`${userLifecyclePaths.invitations}/`.length))
           )
         });
       } else if (request.method === "POST" && path.endsWith("/resend")) {
         this.json(response, 201, {
           data: await this.accounts.resend(
             principal,
-            resourceIdSchema.parse(path.slice("invitations/".length, -"/resend".length))
+            resourceIdSchema.parse(
+              path.slice(`${userLifecyclePaths.invitations}/`.length, -"/resend".length)
+            )
           )
         });
       } else if (request.method === "DELETE") {
         await this.accounts.destroy(
           principal,
-          resourceIdSchema.parse(path.slice("invitations/".length))
+          resourceIdSchema.parse(path.slice(`${userLifecyclePaths.invitations}/`.length))
         );
         response.writeHead(204);
         response.end();
       } else throw new IdentityError(405, "Method not allowed.");
       return;
     }
-    if (["profile", "settings", "application-settings", "security-settings"].includes(path)) {
+    if (
+      path === userLifecyclePaths.profile ||
+      (settingsPaths as readonly string[]).includes(path)
+    ) {
       if (!["GET", "PATCH"].includes(request.method ?? ""))
         throw new IdentityError(405, "Method not allowed.");
       const input = request.method === "PATCH" ? await this.body(request) : undefined;
       const data =
-        path === "profile"
+        path === userLifecyclePaths.profile
           ? await this.administration.userController.profile(principal, input)
-          : path === "settings"
+          : path === settingsPaths[2]
             ? await this.administration.settingsController.organization(principal, input)
             : await this.administration.settingsController.application(
                 principal,
-                path === "security-settings",
+                path === settingsPaths[4],
                 input,
                 this.config.sessionSeconds
               );
       this.json(response, 200, { data });
       return;
     }
-    const match = path.match(
-      /^(users|organizations|memberships|roles|permissions|sessions|audit-events)(?:\/([^/]+))?$/
-    );
-    if (!match) throw new IdentityError(404, "Not found.");
-    const resource = match[1] as IdentityResource;
-    const controller = this.administration.controllers[resource];
-    const id = match[2] ? resourceIdSchema.parse(decodeURIComponent(match[2])) : undefined;
+    const [segment, encodedId, extra] = path.split("/");
+    const route = this.administration.routes.find(({ resource }) => resource === segment);
+    if (!route || extra) throw new IdentityError(404, "Not found.");
+    const resource = route.resource;
+    const controller = route.controller;
+    const id = encodedId ? resourceIdSchema.parse(decodeURIComponent(encodedId)) : undefined;
     if (request.method === "GET") {
       const query = resourceListQuerySchema.parse(
         Object.fromEntries(new URL(request.url!, this.config.origin).searchParams)

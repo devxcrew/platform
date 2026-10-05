@@ -20,6 +20,14 @@ export class IdentitySettingsRepository {
       .where("app_id", "=", appId)
       .executeTakeFirst();
   }
+  async sessionSeconds(appId: string, fallback: number) {
+    const row = await this.db
+      .selectFrom("identity_app_settings")
+      .select("session_seconds")
+      .where("app_id", "=", appId)
+      .executeTakeFirst();
+    return Number(row?.session_seconds ?? fallback);
+  }
   organization(tenantId: string) {
     return this.db
       .selectFrom("identity_settings")

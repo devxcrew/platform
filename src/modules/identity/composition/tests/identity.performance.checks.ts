@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { Kysely } from "kysely";
-import type { IdentitySchema } from "../identity.types.js";
+import type { IdentitySchema } from "../../identity.types.js";
 
 // Run only against the integration suite's disposable SQLite file.
 export async function verifyListPerformance(

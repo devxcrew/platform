@@ -2,14 +2,22 @@ import type { Kysely } from "kysely";
 import { IdentityError } from "../support/identity.error.js";
 import type { IdentitySchema, Principal } from "../identity.types.js";
 import type { IdentityListQuery, IdentityResource } from "../support/pagination.schema.js";
-import { createIdentityAuditProvider, auditResource } from "../audit/index.js";
-import { createIdentitySessionProvider, sessionResource } from "../session/index.js";
-import { createIdentityOrganizationProvider, organizationResource } from "../organization/index.js";
+import { createIdentityAuditProvider, auditResourceRoute } from "../audit/index.js";
+import { createIdentitySessionProvider, sessionResourceRoute } from "../session/index.js";
+import {
+  createIdentityOrganizationProvider,
+  organizationResourceRoute
+} from "../organization/index.js";
 import { createIdentitySettingsProvider } from "../settings/index.js";
-import { createIdentityRoleProvider, roleResource } from "../role/index.js";
-import { createIdentityUserRoleProvider, userRoleResource } from "../user-role/index.js";
-import { createIdentityUserAdministrationProvider, userResource } from "../user/index.js";
-import { permissionResource, type IdentityPermissionProvider } from "../permission/index.js";
+import { createIdentityRoleProvider, roleResourceRoute } from "../role/index.js";
+import { createIdentityUserRoleProvider, userRoleResourceRoute } from "../user-role/index.js";
+import {
+  activeUserIds,
+  createIdentityUserAdministrationProvider,
+  userNameSource,
+  userResourceRoute
+} from "../user/index.js";
+import { permissionResourceRoute, type IdentityPermissionProvider } from "../permission/index.js";
 import { IdentityUserController } from "../user/index.js";
 import { IdentityOrganizationController } from "../organization/index.js";
 import { IdentityUserRoleController } from "../user-role/index.js";
@@ -18,7 +26,8 @@ import { IdentityPermissionController } from "../permission/index.js";
 import { IdentitySessionController } from "../session/index.js";
 import { IdentityAuditController } from "../audit/index.js";
 import { IdentitySettingsController } from "../settings/index.js";
-import type { IdentityResourceController } from "../support/resource-controller.js";
+import type { IdentityResourceRoute } from "../support/resource-controller.js";
+import type { IdentityUserOwnership } from "../user/index.js";
 
 export class IdentityAdministrationComposition {
   private readonly audit;
@@ -31,7 +40,25 @@ export class IdentityAdministrationComposition {
   private readonly permissions;
   readonly userController: IdentityUserController;
   readonly settingsController: IdentitySettingsController;
-  readonly controllers: Record<IdentityResource, IdentityResourceController>;
+  readonly routes: readonly IdentityResourceRoute[];
+
+  userOwnership(): IdentityUserOwnership {
+    return {
+      activeOrganization: this.organization.active,
+      assignInvitedMembership: this.userRoles.assignInvitedMembership,
+      revokeUserSessions: this.session.revokeUser,
+      recordEvent: this.audit.recordEvent,
+      sessionSeconds: this.settingsProvider.sessionSeconds,
+      activeSession: this.session.active,
+      createSession: this.session.create,
+      revokeSession: this.session.revoke,
+      throttle: this.session.throttle,
+      clearThrottle: this.session.clearThrottle,
+      activeMembership: this.userRoles.activeMembership,
+      activeOrganizationDetail: this.organization.activeDetail,
+      permissionIds: this.roles.permissionIds
+    };
+  }
 
   constructor(
     database: Kysely<IdentitySchema>,
@@ -61,6 +88,7 @@ export class IdentityAdministrationComposition {
       permissions,
       this.audit.mutate,
       this.audit.record,
+      this.organization.active,
       async (trx, appId, tenantId, roleId) => {
         const userIds = await this.userRoles.userIdsForCustomRole(trx, roleId);
         await this.session.revokeRoleMembers(trx, appId, tenantId, userIds);
@@ -68,32 +96,45 @@ export class IdentityAdministrationComposition {
     );
     this.userRoles = createIdentityUserRoleProvider(
       database,
+      {
+        users: userNameSource,
+        organizations: this.organization.nameSource,
+        roles: this.roles.customRoleNameSource,
+        customRoleIds: this.roles.customRoleIdsSource
+      },
+      activeUserIds,
       this.roles.resolve,
+      this.roles.customRoleInApp,
       this.audit.mutate,
       async (actor, userId) => {
         if (!(await this.users.show(actor, userId)))
           throw new IdentityError(404, "Resource not found.");
       },
+      this.organization.active,
       this.audit.record,
       this.session.revokeMembership
     );
     this.users = createIdentityUserAdministrationProvider(
       database,
+      (actor, userId) =>
+        this.userRoles.userVisibility(actor, this.roles.customRoleIdsSource, userId),
       this.roles.resolve,
       this.userRoles,
-      this.audit.mutate
+      this.audit.mutate,
+      this.organization.active,
+      this.session.revokeUser
     );
     this.userController = new IdentityUserController(this.users);
     this.settingsController = new IdentitySettingsController(this.settingsProvider);
-    this.controllers = {
-      [userResource]: this.userController,
-      [organizationResource]: new IdentityOrganizationController(this.organization),
-      [userRoleResource]: new IdentityUserRoleController(this.userRoles),
-      [roleResource]: new IdentityRoleController(this.roles),
-      [permissionResource]: new IdentityPermissionController(this.permissions),
-      [sessionResource]: new IdentitySessionController(this.session),
-      [auditResource]: new IdentityAuditController(this.audit)
-    };
+    this.routes = [
+      userResourceRoute(this.userController),
+      organizationResourceRoute(new IdentityOrganizationController(this.organization)),
+      userRoleResourceRoute(new IdentityUserRoleController(this.userRoles)),
+      roleResourceRoute(new IdentityRoleController(this.roles)),
+      permissionResourceRoute(new IdentityPermissionController(this.permissions)),
+      sessionResourceRoute(new IdentitySessionController(this.session)),
+      auditResourceRoute(new IdentityAuditController(this.audit))
+    ];
   }
 
   async list(actor: Principal, resource: IdentityResource, query: IdentityListQuery) {

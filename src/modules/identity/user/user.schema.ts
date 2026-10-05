@@ -2,7 +2,6 @@ import { z } from "zod";
 import { identityKeySchema, portalSchema, resourceIdSchema } from "../support/identity.schema.js";
 
 export { identityKeySchema, portalSchema } from "../support/identity.schema.js";
-export { loginSchema } from "../session/session.schema.js";
 
 export const passwordSchema = z
   .object({

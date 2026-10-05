@@ -15,6 +15,7 @@ export function createIdentityAuditProvider(
     list: service.list.bind(service),
     show: service.show.bind(service),
     mutate: service.mutate,
-    record: repository.record.bind(repository)
+    record: repository.record.bind(repository),
+    recordEvent: repository.recordEvent.bind(repository)
   });
 }

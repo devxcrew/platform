@@ -1,5 +1,6 @@
 import { sql, type Kysely, type Transaction } from "kysely";
 import type { IdentitySchema, Portal, Principal } from "../identity.types.js";
+import { checkIdentityRequest } from "../support/identity.request-context.js";
 import type { IdentityListQuery } from "../support/pagination.schema.js";
 import { listRows, showRow } from "../support/pagination.js";
 
@@ -17,6 +18,81 @@ export class IdentitySessionRepository {
   async verifySchema() {
     await this.db.selectFrom("identity_sessions").select("token_hash").limit(1).execute();
     await this.db.selectFrom("identity_throttles").select("key").limit(1).execute();
+  }
+
+  active(tokenHash: string, appId: string, portal: Portal, now: string) {
+    return this.db
+      .selectFrom("identity_sessions")
+      .selectAll()
+      .where("token_hash", "=", tokenHash)
+      .where("app_id", "=", appId)
+      .where("portal", "=", portal)
+      .where("expires_at", ">", now)
+      .executeTakeFirst();
+  }
+
+  async create(
+    session: IdentitySchema["identity_sessions"],
+    previous: string | undefined,
+    eligible: (trx: Transaction<IdentitySchema>) => Promise<boolean>
+  ) {
+    return this.db.transaction().execute(async (trx) => {
+      checkIdentityRequest();
+      if (!(await eligible(trx))) return false;
+      await trx
+        .deleteFrom("identity_sessions")
+        .where("expires_at", "<=", new Date().toISOString())
+        .execute();
+      if (previous)
+        await trx
+          .deleteFrom("identity_sessions")
+          .where("token_hash", "=", previous)
+          .where("app_id", "=", session.app_id)
+          .where("portal", "=", session.portal)
+          .execute();
+      await trx.insertInto("identity_sessions").values(session).execute();
+      checkIdentityRequest();
+      return true;
+    });
+  }
+
+  async revoke(tokenHash: string, appId: string, portal: Portal) {
+    checkIdentityRequest();
+    await this.db
+      .deleteFrom("identity_sessions")
+      .where("token_hash", "=", tokenHash)
+      .where("app_id", "=", appId)
+      .where("portal", "=", portal)
+      .execute();
+  }
+
+  async throttle(key: string) {
+    const now = new Date();
+    return this.db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom("identity_throttles")
+        .where("expires_at", "<=", now.toISOString())
+        .execute();
+      await trx
+        .insertInto("identity_throttles")
+        .values({
+          key,
+          attempts: 1,
+          expires_at: new Date(now.getTime() + 15 * 60 * 1000).toISOString()
+        })
+        .onConflict((c) => c.column("key").doUpdateSet({ attempts: sql`attempts + 1` }))
+        .execute();
+      const row = await trx
+        .selectFrom("identity_throttles")
+        .select("attempts")
+        .where("key", "=", key)
+        .executeTakeFirstOrThrow();
+      return Number(row.attempts);
+    });
+  }
+
+  async clearThrottle(key: string) {
+    await this.db.deleteFrom("identity_throttles").where("key", "=", key).execute();
   }
 
   list(actor: Principal, query: IdentityListQuery) {

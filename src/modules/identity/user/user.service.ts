@@ -3,7 +3,8 @@ import { IdentityUserRepository } from "./user.repository.js";
 import { digest, hashPassword, verifyPassword } from "./user.password.js";
 import type { IdentityConfig, Portal, Principal } from "../identity.types.js";
 import type { z } from "zod";
-import type { loginSchema, passwordSchema } from "./user.schema.js";
+import type { passwordSchema } from "./user.schema.js";
+import type { loginSchema } from "../session/index.js";
 import { IdentityError } from "../support/identity.error.js";
 
 export class IdentityService {

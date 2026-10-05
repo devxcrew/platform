@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { Kysely } from "kysely";
+import type { IdentityUserOwnership } from "./user.provider.js";
 import { digest, hashPassword } from "./user.password.js";
 import { IdentityError } from "../support/identity.error.js";
 import { IdentityUserRepository } from "./user.repository.js";
@@ -24,7 +25,8 @@ export class IdentityLifecycleService {
     private readonly db: Kysely<IdentitySchema>,
     private readonly config: IdentityConfig,
     private readonly delivery: IdentityDeliveryProvider | undefined,
-    private readonly permissions: IdentityPermissionProvider
+    private readonly permissions: IdentityPermissionProvider,
+    private readonly ownership: IdentityUserOwnership
   ) {}
 
   async invite(actor: Principal, raw: unknown) {
@@ -36,17 +38,12 @@ export class IdentityLifecycleService {
       throw new IdentityError(403, "Access denied.");
     this.requireDelivery();
     if (
-      (await new IdentityUserRepository(this.db, this.permissions).throttle(
+      (await new IdentityUserRepository(this.db, this.permissions, this.ownership).throttle(
         digest(`${actor.appId}:invitation:${actor.user.id}`)
       )) > 20
     )
       throw new IdentityError(429, "Too many invitations. Try again later.");
-    const tenant = await this.db
-      .selectFrom("identity_tenants")
-      .select("id")
-      .where("id", "=", tenantId)
-      .where("active", "=", 1)
-      .executeTakeFirst();
+    const tenant = await this.ownership.activeOrganization(this.db, tenantId);
     if (!tenant) throw new IdentityError(422, "Organization is inactive or unavailable.");
     if (
       await this.db
@@ -76,7 +73,7 @@ export class IdentityLifecycleService {
       })
       .parse(raw);
     this.requireDelivery();
-    const repository = new IdentityUserRepository(this.db, this.permissions);
+    const repository = new IdentityUserRepository(this.db, this.permissions, this.ownership);
     if ((await repository.throttle(digest(`${this.config.appId}:recovery-ip:${address}`))) > 20)
       throw new IdentityError(429, "Too many recovery requests. Try again later.");
     if (
@@ -108,7 +105,7 @@ export class IdentityLifecycleService {
 
   async complete(portal: Portal, kind: "invitation" | "recovery", raw: unknown, address: string) {
     const input = tokenCompletionSchema.parse(raw);
-    const repository = new IdentityUserRepository(this.db, this.permissions);
+    const repository = new IdentityUserRepository(this.db, this.permissions, this.ownership);
     if ((await repository.throttle(digest(`${this.config.appId}:complete:${address}`))) > 10)
       throw new IdentityError(429, "Too many account requests. Try again later.");
     const available = await this.db
@@ -143,12 +140,7 @@ export class IdentityLifecycleService {
         (this.config.mode === "single-client" && token.tenant_id !== this.config.tenantId)
       )
         throw new IdentityError(422, "This link is invalid or expired.");
-      const activeTenant = await trx
-        .selectFrom("identity_tenants")
-        .select("id")
-        .where("id", "=", token.tenant_id)
-        .where("active", "=", 1)
-        .executeTakeFirst();
+      const activeTenant = await this.ownership.activeOrganization(trx, token.tenant_id);
       if (!activeTenant) throw new IdentityError(422, "This link is invalid or expired.");
       const claimed = await trx
         .updateTable("identity_tokens")
@@ -178,21 +170,13 @@ export class IdentityLifecycleService {
             active: 1
           })
           .execute();
-        await trx
-          .insertInto("identity_memberships")
-          .values({
-            user_id: userId,
-            tenant_id: token.tenant_id,
-            role_id: token.role_id
-          })
-          .execute();
+        await this.ownership.assignInvitedMembership(trx, userId, token.tenant_id, token.role_id);
       } else {
-        const principal = await new IdentityUserRepository(trx, this.permissions).principal(
-          userId,
-          token.tenant_id,
-          portal,
-          this.config.appId
-        );
+        const principal = await new IdentityUserRepository(
+          trx,
+          this.permissions,
+          this.ownership
+        ).principal(userId, token.tenant_id, portal, this.config.appId);
         if (!principal?.permissions.includes("identity.password"))
           throw new IdentityError(422, "This link is invalid or expired.");
         await trx
@@ -200,7 +184,7 @@ export class IdentityLifecycleService {
           .set({ password_hash: passwordHash })
           .where("id", "=", userId)
           .execute();
-        await trx.deleteFrom("identity_sessions").where("user_id", "=", userId).execute();
+        await this.ownership.revokeUserSessions(trx, userId);
         await trx
           .updateTable("identity_tokens")
           .set({ consumed_at: new Date().toISOString() })
@@ -208,18 +192,13 @@ export class IdentityLifecycleService {
           .where("kind", "=", "recovery")
           .execute();
       }
-      await trx
-        .insertInto("identity_audit_events")
-        .values({
-          id: randomUUID(),
-          app_id: this.config.appId,
-          actor_id: userId,
-          tenant_id: token.tenant_id,
-          action: `identity.${kind}.completed`,
-          resource_id: token.id,
-          created_at: new Date().toISOString()
-        })
-        .execute();
+      await this.ownership.recordEvent(trx, {
+        appId: this.config.appId,
+        actorId: userId,
+        tenantId: token.tenant_id,
+        action: `identity.${kind}.completed`,
+        resourceId: token.id
+      });
       checkIdentityRequest();
       return { message: "Account access updated. Sign in to continue." };
     });
@@ -310,18 +289,13 @@ export class IdentityLifecycleService {
       if (actor.portal !== "super-admin") query = query.where("tenant_id", "=", actor.tenant.id);
       if ((await query.executeTakeFirst()).numUpdatedRows !== 1n)
         throw new IdentityError(404, "Invitation not found.");
-      await trx
-        .insertInto("identity_audit_events")
-        .values({
-          id: randomUUID(),
-          app_id: actor.appId,
-          actor_id: actor.user.id,
-          tenant_id: token.tenant_id,
-          action: "identity.invitation.revoked",
-          resource_id: id,
-          created_at: new Date().toISOString()
-        })
-        .execute();
+      await this.ownership.recordEvent(trx, {
+        appId: actor.appId,
+        actorId: actor.user.id,
+        tenantId: token.tenant_id,
+        action: "identity.invitation.revoked",
+        resourceId: id
+      });
       checkIdentityRequest();
     });
   }
@@ -373,18 +347,13 @@ export class IdentityLifecycleService {
           .set({ delivered: 1 })
           .where("id", "=", row.id)
           .execute();
-        await trx
-          .insertInto("identity_audit_events")
-          .values({
-            id: randomUUID(),
-            app_id: this.config.appId,
-            actor_id: actorId,
-            tenant_id: tenantId,
-            action: `identity.${kind}.issued`,
-            resource_id: row.id,
-            created_at: new Date().toISOString()
-          })
-          .execute();
+        await this.ownership.recordEvent(trx, {
+          appId: this.config.appId,
+          actorId,
+          tenantId,
+          action: `identity.${kind}.issued`,
+          resourceId: row.id
+        });
         checkIdentityRequest();
       });
       return { ...row, delivered: 1 };
@@ -416,17 +385,12 @@ export class IdentityLifecycleService {
     resourceId: string,
     tenantId = actor.tenant.id
   ) {
-    await this.db
-      .insertInto("identity_audit_events")
-      .values({
-        id: randomUUID(),
-        app_id: actor.appId,
-        actor_id: actor.user.id,
-        tenant_id: tenantId,
-        action,
-        resource_id: resourceId,
-        created_at: new Date().toISOString()
-      })
-      .execute();
+    await this.ownership.recordEvent(this.db, {
+      appId: actor.appId,
+      actorId: actor.user.id,
+      tenantId,
+      action,
+      resourceId
+    });
   }
 }

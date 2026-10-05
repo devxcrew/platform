@@ -19,6 +19,11 @@ export function createIdentitySessionProvider(
     revokeOne: repository.revokeOne.bind(repository),
     revokeUser: repository.revokeUser.bind(repository),
     revokeMembership: repository.revokeMembership.bind(repository),
-    revokeRoleMembers: repository.revokeRoleMembers.bind(repository)
+    revokeRoleMembers: repository.revokeRoleMembers.bind(repository),
+    active: repository.active.bind(repository),
+    create: repository.create.bind(repository),
+    revoke: repository.revoke.bind(repository),
+    throttle: repository.throttle.bind(repository),
+    clearThrottle: repository.clearThrottle.bind(repository)
   });
 }

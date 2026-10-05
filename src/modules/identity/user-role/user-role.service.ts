@@ -6,15 +6,26 @@ import { protectAdministrators } from "./user-role.policy.js";
 import { membershipSchema, membershipUpdateSchema } from "./user-role.schema.js";
 import type { IdentityRoleResolver } from "../role/index.js";
 import type { IdentityMutation } from "../identity.types.js";
-import { listMemberships, showMembership } from "./user-role.repository.js";
+import {
+  listMemberships,
+  showMembership,
+  type MembershipReadSources
+} from "./user-role.repository.js";
 import type { IdentityListQuery } from "../support/pagination.schema.js";
 
 export class IdentityUserRoleService {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
+    private readonly readSources: MembershipReadSources,
+    private readonly activeUsers: (db: Kysely<IdentitySchema>, ids: string[]) => Promise<string[]>,
     private readonly resolveRole: IdentityRoleResolver,
+    private readonly customRoleInApp: (db: Kysely<IdentitySchema>, id: string, appId: string) => Promise<unknown>,
     private readonly mutate: IdentityMutation,
     private readonly assertUserVisible: (actor: Principal, userId: string) => Promise<unknown>,
+    private readonly activeOrganization: (
+      trx: Transaction<IdentitySchema>,
+      id: string
+    ) => Promise<unknown>,
     private readonly recordAudit: (
       trx: Transaction<IdentitySchema>,
       actor: Principal,
@@ -33,12 +44,12 @@ export class IdentityUserRoleService {
 
   list(actor: Principal, query: IdentityListQuery) {
     this.manage(actor);
-    return listMemberships(this.db, actor, query);
+    return listMemberships(this.db, actor, query, this.readSources);
   }
 
   show(actor: Principal, id: string) {
     this.manage(actor);
-    return showMembership(this.db, actor, id);
+    return showMembership(this.db, actor, id, this.readSources);
   }
 
   async createMembership(actor: Principal, raw: unknown) {
@@ -125,29 +136,16 @@ export class IdentityUserRoleService {
       if (!current) throw new IdentityError(404, "Membership not found.");
       if (
         current.custom_role_id &&
-        !(await trx
-          .selectFrom("identity_custom_roles")
-          .select("id")
-          .where("id", "=", current.custom_role_id)
-          .where("app_id", "=", actor.appId)
-          .executeTakeFirst())
+        !(await this.customRoleInApp(trx, current.custom_role_id, actor.appId))
       )
         throw new IdentityError(404, "Membership not found.");
-      if (
-        input.active &&
-        !(await trx
-          .selectFrom("identity_tenants")
-          .select("id")
-          .where("id", "=", tenantId)
-          .where("active", "=", 1)
-          .executeTakeFirst())
-      )
+      if (input.active && !(await this.activeOrganization(trx, tenantId)))
         throw new IdentityError(422, "Organization is inactive or unavailable.");
       if (Number(current.version) !== input.expectedVersion)
         throw new IdentityError(409, "This record changed. Reload before saving.");
       const selected = await this.resolveRole(trx, actor, input.roleId, tenantId);
       if (!input.active || selected.portal !== oldPortal)
-        await protectAdministrators(trx, userId, tenantId, oldPortal);
+        await protectAdministrators(trx, userId, this.activeUsers, tenantId, oldPortal);
       if (
         selected.portal !== oldPortal &&
         (await trx
@@ -212,17 +210,12 @@ export class IdentityUserRoleService {
       if (
         !current ||
         (current.custom_role_id &&
-          !(await trx
-            .selectFrom("identity_custom_roles")
-            .select("id")
-            .where("id", "=", current.custom_role_id)
-            .where("app_id", "=", actor.appId)
-            .executeTakeFirst()))
+          !(await this.customRoleInApp(trx, current.custom_role_id, actor.appId)))
       )
         throw new IdentityError(404, "Membership not found.");
       if (Number(current.version) !== expectedVersion)
         throw new IdentityError(409, "This record changed. Reload before saving.");
-      await protectAdministrators(trx, userId, tenantId, portal);
+      await protectAdministrators(trx, userId, this.activeUsers, tenantId, portal);
       await trx
         .deleteFrom("identity_memberships")
         .where("user_id", "=", userId)
@@ -252,14 +245,7 @@ export class IdentityUserRoleService {
   }
 
   private async activeTenant(trx: Transaction<IdentitySchema>, tenantId: string) {
-    if (
-      !(await trx
-        .selectFrom("identity_tenants")
-        .select("id")
-        .where("id", "=", tenantId)
-        .where("active", "=", 1)
-        .executeTakeFirst())
-    )
+    if (!(await this.activeOrganization(trx, tenantId)))
       throw new IdentityError(422, "Organization is inactive or unavailable.");
   }
 

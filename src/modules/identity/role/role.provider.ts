@@ -3,12 +3,31 @@ import type { IdentityMutation, IdentitySchema, Principal } from "../identity.ty
 import type { IdentityPermissionProvider } from "../permission/index.js";
 import { createIdentityRolePermissionProvider } from "../role-permission/index.js";
 import { IdentityRolesService } from "./role.service.js";
-import { verifyRoleSchema } from "./role.repository.js";
+import {
+  activeCustomRole,
+  customRoleInApp,
+  customRoleIdsSource,
+  customRoleNameSource,
+  verifyRoleSchema
+} from "./role.repository.js";
 
 export type IdentityRoleProvider = Pick<
   IdentityRolesService,
   "list" | "show" | "resolve" | "create" | "update" | "updateSystemPermissions"
-> & { verify(): Promise<void> };
+> & {
+  verify(): Promise<void>;
+  activeCustomRole: typeof activeCustomRole;
+  customRoleInApp: typeof customRoleInApp;
+  customRoleNameSource: typeof customRoleNameSource;
+  customRoleIdsSource: typeof customRoleIdsSource;
+  permissionIds(
+    db: Kysely<IdentitySchema>,
+    portal: "user" | "admin" | "super-admin",
+    customRoleId: string | null,
+    appId: string,
+    tenantId: string
+  ): Promise<string[] | null>;
+};
 
 export function createIdentityRoleProvider(
   database: Kysely<IdentitySchema>,
@@ -21,6 +40,7 @@ export function createIdentityRoleProvider(
     action: string,
     id: string
   ) => Promise<void>,
+  activeOrganization: (trx: Transaction<IdentitySchema>, id: string) => Promise<unknown>,
   revokeRoleSessions: (
     trx: Transaction<IdentitySchema>,
     appId: string,
@@ -34,9 +54,20 @@ export function createIdentityRoleProvider(
     rolePermissions,
     mutate,
     recordAudit,
+    activeOrganization,
     revokeRoleSessions
   );
   return Object.freeze({
+    activeCustomRole,
+    customRoleInApp,
+    customRoleNameSource,
+    customRoleIdsSource,
+    async permissionIds(db, portal, customRoleId, appId, tenantId) {
+      if (!customRoleId) return rolePermissions.permissionIds(db, portal, false);
+      if (portal !== "user" || !(await activeCustomRole(db, customRoleId, appId, tenantId)))
+        return null;
+      return rolePermissions.permissionIds(db, customRoleId, true);
+    },
     async verify() {
       await verifyRoleSchema(database);
       await rolePermissions.verify();
