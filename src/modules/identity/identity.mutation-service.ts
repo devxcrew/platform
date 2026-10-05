@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Kysely } from "kysely";
+import type { Kysely, Transaction } from "kysely";
 import type { IdentityMutation, IdentitySchema, Principal } from "./identity.types.js";
 import { checkIdentityRequest } from "./identity.request-context.js";
 
@@ -10,12 +10,12 @@ export class IdentityMutationService {
     actor: Principal,
     resource: string,
     id: string,
-    action: Parameters<IdentityMutation>[3],
+    action: (trx: Transaction<IdentitySchema>, id: string) => Promise<T>,
     affectedTenant?: string
   ) =>
     this.db.transaction().execute(async (trx) => {
       checkIdentityRequest();
-      const result = (await action(trx, id)) as T;
+      const result = await action(trx, id);
       checkIdentityRequest();
       const targetTenant =
         affectedTenant ??

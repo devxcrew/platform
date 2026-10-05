@@ -35,7 +35,7 @@ export class IdentityAdministrationService {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
     private readonly appName: string,
-    private readonly permissions: IdentityPermissionProvider
+    permissions: IdentityPermissionProvider
   ) {
     this.repository = new IdentityAdministrationRepository(db);
     this.mutations = new IdentityMutationService(db);
@@ -104,7 +104,11 @@ export class IdentityAdministrationService {
     if (resource === "memberships") return this.userRoles.updateMembership(actor, id, raw);
     if (resource === "roles" && !["user", "admin", "super-admin"].includes(id))
       return this.roles.update(actor, id, raw);
-    if (resource === "roles") return this.roles.updateSystemPermissions(actor, id, raw);
+    if (resource === "roles") {
+      this.allow(actor, resource, true);
+      await this.show(actor, resource, id);
+      return this.roles.updateSystemPermissions(actor, id, raw);
+    }
     this.allow(actor, resource, true);
     await this.show(actor, resource, id);
     if (resource === "users") return this.userAdministration.update(actor, id, raw);

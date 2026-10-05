@@ -41,6 +41,8 @@ The baseline is recorded in projects/cxsun/agent/DEPENDENCY-BASELINE.json.
 ## Identity module organization - 2026-10-05
 
 - [x] Move user, role, user-role, permission, and role-permission code into owner folders.
+- [x] Move user/profile administration into user, membership creation into user-role, and system-role permission updates into role.
+- [x] Keep request-scoped transactions and audit recording in a shared identity mutation service.
 - [x] Keep shared identity composition and HTTP resource dispatch in the identity root.
 - [x] Add module provider boundaries and preserve public identity exports.
 - [x] Apply CXApp-style flat, prefixed module filenames and owner-local user schemas.

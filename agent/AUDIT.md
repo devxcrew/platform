@@ -218,6 +218,6 @@ The baseline is recorded in projects/cxsun/agent/DEPENDENCY-BASELINE.json.
 
 ## Identity module organization - 2026-10-05
 
-Moved identity user, role, user-role, permission, and role-permission implementations, schemas, migrations, and checks into owner folders under `src/modules/identity`. Adopted CXApp's flat, filename-prefixed module layout and formatting settings. Moved account/profile schemas to the user owner, retained Platform's provider contract as the module registration boundary, and updated root exports and imports.
+Moved identity user, role, user-role, permission, and role-permission implementations, schemas, migrations, and checks into owner folders under `src/modules/identity`. User/profile administration, membership creation, and system-role permission updates now execute in their owning modules. Shared request-scoped transactions and audit recording live in `identity.mutation-service.ts`. Adopted CXApp's flat, filename-prefixed module layout and formatting settings. Retained Platform's provider contract as the module registration boundary and updated root exports and imports.
 
-Verification: `node node_modules/typescript/bin/tsc -p tsconfig.json`, Prettier `--check`, and `git diff --check` passed. Identity tests were not run.
+Verification: `node node_modules/typescript/bin/tsc -p tsconfig.json`, Prettier `--check`, and `git diff --check` passed after the use-case moves. Identity tests were not run.

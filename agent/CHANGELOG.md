@@ -2,11 +2,23 @@
 
 ## Version State
 
-Current version: 0.1.3
+Current version: 0.1.4
 
-Release tag: v-0.1.3
+Release tag: v-0.1.4
 
-Changelog label: v 0.1.3
+Changelog label: v 0.1.4
+
+## v-0.1.4
+
+### [v 0.1.4] 2026-10-05 9:30 am - Refine identity module ownership
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Complete owner-local identity updates and close test authorization gaps.
 
 ## v-0.1.3
 

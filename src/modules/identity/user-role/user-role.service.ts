@@ -20,8 +20,8 @@ export class IdentityUserRoleService {
     this.manage(actor);
     const input = membershipSchema.parse(raw);
     const tenantId = this.tenantId(actor, input.tenantId);
-    await this.assertUserVisible(actor, input.userId);
     const selected = await this.resolveRole(this.db, actor, input.roleId, tenantId);
+    await this.assertUserVisible(actor, input.userId);
     const id = `${input.userId}~${tenantId}~${selected.portal}`;
     return this.mutate(actor, "memberships", id, async (trx) => {
       await this.activeTenant(trx, tenantId);
@@ -64,6 +64,8 @@ export class IdentityUserRoleService {
     tenantId: string,
     roleId: string
   ) {
+    this.manage(actor);
+    this.tenantId(actor, tenantId);
     await this.activeTenant(trx, tenantId);
     const selected = await this.resolveRole(trx, actor, roleId, tenantId);
     await trx
