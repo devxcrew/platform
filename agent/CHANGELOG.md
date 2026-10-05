@@ -10,6 +10,16 @@ Changelog label: v 0.1.5
 
 ## v-0.1.5
 
+### [v 0.1.5] 2026-10-05 12:50 pm - Keep runtime logs outside Git
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Remove generated governance output from source tracking and ignore runtime logs. Identity verification evidence remains in agent audit records.
+
 ### [v 0.1.5] 2026-10-05 12:46 pm - Align identity ownership and transport boundaries
 
 #### Database Changes
