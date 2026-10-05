@@ -7,11 +7,6 @@ export async function connectGovernance(env, options = {}) {
   const url = new URL(env.MCP_SERVER_URL ?? "https://mcp.codexsun.com/mcp");
   if (url.href !== "https://mcp.codexsun.com/mcp")
     throw new Error("Only https://mcp.codexsun.com/mcp is allowed.");
-  if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid MCP server URL.");
-  if (url.username || url.password || url.search || url.hash || url.pathname !== "/mcp")
-    throw new Error("MCP server URL must use /mcp without credentials, query, or fragment.");
-  if (url.protocol === "http:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
-    throw new Error("Remote MCP servers require HTTPS.");
   if (!env.MCP_SERVER_SECRET || !env.APP_ID || !env.APP_USER)
     throw new Error("Configure MCP_SERVER_SECRET, APP_ID, and APP_USER in .env.");
   const headers = {
@@ -21,15 +16,30 @@ export async function connectGovernance(env, options = {}) {
     "X-App-Id": env.APP_ID,
     "X-App-User": env.APP_USER
   };
+  async function post(body) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let response;
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          redirect: "error",
+          headers,
+          signal: AbortSignal.timeout(options.timeout ?? 15000),
+          body: JSON.stringify(body)
+        });
+      } catch (error) {
+        if (attempt === 2) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+        continue;
+      }
+      if (response.ok) return response;
+      if (attempt === 2 || (response.status !== 429 && response.status < 500))
+        throw new Error(`MCP connection returned HTTP ${response.status}.`);
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
   async function request(id, method, params) {
-    const response = await fetch(url, {
-      method: "POST",
-      redirect: "error",
-      headers,
-      signal: AbortSignal.timeout(options.timeout ?? 15000),
-      body: JSON.stringify({ jsonrpc: "2.0", id, method, params })
-    });
-    if (!response.ok) throw new Error(`MCP connection returned HTTP ${response.status}.`);
+    const response = await post({ jsonrpc: "2.0", id, method, params });
     const message = await response.json();
     if (message.error) throw new Error("MCP protocol request failed.");
     return message.result;
@@ -40,14 +50,7 @@ export async function connectGovernance(env, options = {}) {
     clientInfo: { name: env.APP_ID, version: "1.0.0" }
   });
   headers["MCP-Protocol-Version"] = initialized.protocolVersion;
-  const notification = await fetch(url, {
-    method: "POST",
-    redirect: "error",
-    headers,
-    signal: AbortSignal.timeout(options.timeout ?? 15000),
-    body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })
-  });
-  if (!notification.ok) throw new Error(`MCP initialization returned HTTP ${notification.status}.`);
+  await post({ jsonrpc: "2.0", method: "notifications/initialized" });
   const result = await request(2, "tools/call", {
     name: "get_working_instructions",
     arguments: {}
@@ -63,12 +66,24 @@ export async function connectGovernance(env, options = {}) {
     !instructions.instructions.trim()
   )
     throw new Error("MCP instructions do not match the requesting app.");
+  if (options.strict) {
+    if (instructions.repository?.repository === undefined)
+      throw new Error("MCP repository metadata is missing.");
+    const resources = await request(3, "resources/list", {});
+    const uris = new Set(resources.resources?.map((resource) => resource.uri));
+    for (const uri of ["governance://code-standard", "governance://app-setup"])
+      if (!uris.has(uri)) throw new Error(`MCP resource is missing: ${uri}.`);
+    const tools = await request(4, "tools/list", {});
+    const names = new Set(tools.tools?.map((tool) => tool.name));
+    for (const name of ["get_working_instructions", "inspect_repository", "find_guidance"])
+      if (!names.has(name)) throw new Error(`MCP tool is missing: ${name}.`);
+  }
   return instructions;
 }
 
-export async function runConnection(env, { timeout } = {}) {
+export async function runConnection(env, { timeout, strict = false } = {}) {
   try {
-    const result = await connectGovernance(env, { timeout });
+    const result = await connectGovernance(env, { timeout, strict });
     console.info(JSON.stringify(result, null, 2));
     return 0;
   } catch (error) {
