@@ -89,8 +89,14 @@ Live authenticated governance connected. Local release checks passed. Commit and
 
 - [x] Retrieve authenticated live governance.
 - [x] Review public exports, dependency ownership and release artifact scope.
-- [x] Run owner release checks.
-- [ ] Verify registry installation and the latest tag.
+- [x] Run owner release checks: 27 tests passed.
+- [x] Verify npm latest and archive checksums.
+- [x] Complete the isolated five-package consumer verification.
 
 Source version: 0.1.6. SMTP and deployment acceptance remain deferred.
 Tools 0.1.9 already matches its published archive and needs no republish.
+
+Fresh registry-only backend consumer passed public imports, owner migrations, persisted SQLite writes and database reopen.
+
+Registry-only installation of all five packages passed. Public runtime imports, TypeScript/React UI imports and the installed Tools CLI passed.
+Production dependency audit reports zero vulnerabilities. Full runtime deployment and real SMTP remain deferred.

@@ -192,3 +192,10 @@ Expose owner labels and allowed portals. Add label migration without rewriting a
 Seven tests, build and fresh source consumers passed after seeder, controller binding and browser schema corrections. Source 0.1.5 remains unpublished.
 
 Authenticated live MCP verification passed. See the [alignment audit](D:/codexsun/projects/cxsun/agent/SHARED-ALIGNMENT.md). Version numbers remain unchanged. No release delivery was performed by this audit.
+
+## npm release verification - 2026-10-05
+
+- Verify latest package @devxcrew/platform 0.1.6 and registry archive checksums.
+- Verify a fresh five-package registry installation, public imports, TypeScript UI imports and Tools CLI.
+- Pass persisted SQLite migrations and reopen with Framework and Platform.
+- Production dependency audit reports zero vulnerabilities. SMTP and deployment remain deferred.
