@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { identityKeySchema, resourceIdSchema } from "../identity.schema.js";
+import { identityKeySchema, resourceIdSchema } from "../support/identity.schema.js";
 
 const expectedVersion = z.number().int().min(0);
 

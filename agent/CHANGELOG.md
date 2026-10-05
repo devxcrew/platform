@@ -10,6 +10,16 @@ Changelog label: v 0.1.5
 
 ## v-0.1.5
 
+### [v 0.1.5] 2026-10-05 12:46 pm - Align identity ownership and transport boundaries
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Record identity module refactor, seeder import, controller binding and browser schema isolation fixes; seven tests and source consumers passed.
+
 ### [v 0.1.5] 2026-10-05 9:40 am - Fix identity test exports
 
 #### Database Changes
@@ -121,3 +131,10 @@ Export module-owned IdentityError with safe status, message and optional copied 
 ## Unreleased permission catalog presentation - 2026-10-04
 
 Expose owner labels and allowed portals. Add label migration without rewriting applied declaration UP.
+
+
+## Unreleased alignment - 2026-10-05
+
+Seven tests, build and fresh source consumers passed after seeder, controller binding and browser schema corrections. Source 0.1.5 remains unpublished.
+
+Authenticated live MCP verification passed. See the [alignment audit](D:/codexsun/projects/cxsun/agent/SHARED-ALIGNMENT.md). Version numbers remain unchanged. No release delivery was performed by this audit.

@@ -1,6 +1,6 @@
 import type { Transaction } from "kysely";
 import type { IdentitySchema } from "../identity.types.js";
-import { IdentityError } from "../identity.error.js";
+import { IdentityError } from "../support/identity.error.js";
 
 export async function protectAdministrators(
   trx: Transaction<IdentitySchema>,

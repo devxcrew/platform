@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { Kysely } from "kysely";
 import { createIdentityUserProvider } from "./user/index.js";
-import { IdentityController } from "./identity.controller.js";
+import { IdentityController } from "./transport/identity.controller.js";
 import type { IdentitySchema, IdentityProviderOptions } from "./identity.types.js";
-import { IdentityAdministrationService } from "./identity.administration-service.js";
+import { IdentityAdministrationComposition } from "./composition/identity.composition.js";
 import { identityKeySchema } from "./user/index.js";
 import {
   createIdentityPermissionProvider,
@@ -47,7 +47,7 @@ export function createIdentityProvider(
     .min(1)
     .max(100)
     .parse(environment.APP_NAME || config.appId);
-  const administration = new IdentityAdministrationService(database, appName, permissions);
+  const administration = new IdentityAdministrationComposition(database, appName, permissions);
   const lifecycle = user.lifecycle;
   const controller = new IdentityController(service, config, administration, lifecycle);
   return {
@@ -68,44 +68,11 @@ export function createIdentityProvider(
       presentation: administration.presentation.bind(administration)
     },
     async verify() {
-      await database
-        .selectFrom("identity_permission_declarations")
-        .select(["permission_id", "label"])
-        .limit(1)
-        .execute();
+      await permissions.verify();
+      await user.verify();
+      await administration.verify();
       for (const declaration of options.permissions ?? [])
         await permissions.register(config.appId, declaration);
-      await database.selectFrom("identity_roles").select("id").limit(1).execute();
-      await database.selectFrom("identity_users").select("version").limit(1).execute();
-      await database.selectFrom("identity_tenants").select("version").limit(1).execute();
-      await database.selectFrom("identity_roles").select("version").limit(1).execute();
-      await database.selectFrom("identity_settings").select("version").limit(1).execute();
-      await database
-        .selectFrom("identity_app_settings")
-        .select(["version", "session_seconds"])
-        .limit(1)
-        .execute();
-      await database
-        .selectFrom("identity_tokens")
-        .select(["delivered", "consumed_at"])
-        .limit(1)
-        .execute();
-      await database.selectFrom("identity_audit_events").select("created_at").limit(1).execute();
-      await database
-        .selectFrom("identity_custom_roles")
-        .select(["app_id", "tenant_id", "version"])
-        .limit(1)
-        .execute();
-      await database
-        .selectFrom("identity_custom_role_permissions")
-        .select("permission_id")
-        .limit(1)
-        .execute();
-      await database
-        .selectFrom("identity_memberships")
-        .select(["custom_role_id", "active", "version"])
-        .limit(1)
-        .execute();
     }
   };
 }

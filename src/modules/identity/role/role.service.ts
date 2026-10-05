@@ -2,16 +2,41 @@ import { randomUUID } from "node:crypto";
 import type { IdentityRolePermissionProvider } from "../role-permission/index.js";
 import { sql, type Kysely, type Transaction } from "kysely";
 import type { IdentityMutation, IdentitySchema, Portal, Principal } from "../identity.types.js";
-import { IdentityError } from "../identity.error.js";
-import { checkIdentityRequest } from "../identity.request-context.js";
+import { IdentityError } from "../support/identity.error.js";
+import { checkIdentityRequest } from "../support/identity.request-context.js";
 import { customRoleCreateSchema, customRoleUpdateSchema, roleUpdateSchema } from "./role.schema.js";
+import { listRoles, showRole } from "./role.repository.js";
+import type { IdentityListQuery } from "../support/pagination.schema.js";
 
 export class IdentityRolesService {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
     private readonly rolePermissions: IdentityRolePermissionProvider,
-    private readonly mutate: IdentityMutation
+    private readonly mutate: IdentityMutation,
+    private readonly recordAudit: (
+      trx: Transaction<IdentitySchema>,
+      actor: Principal,
+      tenantId: string,
+      action: string,
+      id: string
+    ) => Promise<void>,
+    private readonly revokeRoleSessions: (
+      trx: Transaction<IdentitySchema>,
+      appId: string,
+      tenantId: string,
+      roleId: string
+    ) => Promise<void>
   ) {}
+
+  list(actor: Principal, query: IdentityListQuery) {
+    if (actor.portal === "user") throw new IdentityError(403, "Access denied.");
+    return listRoles(this.db, actor, query);
+  }
+
+  show(actor: Principal, id: string) {
+    if (actor.portal === "user") throw new IdentityError(403, "Access denied.");
+    return showRole(this.db, actor, id);
+  }
 
   async resolve(
     database: Kysely<IdentitySchema>,
@@ -109,16 +134,7 @@ export class IdentityRolesService {
       if (updated.numUpdatedRows !== 1n)
         throw new IdentityError(409, "This record changed. Reload before saving.");
       if (input.permissionIds) await this.rolePermissions.replace(trx, id, input.permissionIds);
-      await trx
-        .deleteFrom("identity_sessions")
-        .where("app_id", "=", actor.appId)
-        .where("tenant_id", "=", role.tenant_id)
-        .where(
-          "user_id",
-          "in",
-          trx.selectFrom("identity_memberships").select("user_id").where("custom_role_id", "=", id)
-        )
-        .execute();
+      await this.revokeRoleSessions(trx, actor.appId, role.tenant_id, id);
       await this.audit(trx, actor, role.tenant_id, "identity.role.changed", id);
       const permissions = await trx
         .selectFrom("identity_custom_role_permissions")
@@ -203,17 +219,6 @@ export class IdentityRolesService {
     action: string,
     resourceId: string
   ) {
-    await trx
-      .insertInto("identity_audit_events")
-      .values({
-        id: randomUUID(),
-        app_id: actor.appId,
-        actor_id: actor.user.id,
-        tenant_id: tenantId,
-        action,
-        resource_id: resourceId,
-        created_at: new Date().toISOString()
-      })
-      .execute();
+    await this.recordAudit(trx, actor, tenantId, action, resourceId);
   }
 }

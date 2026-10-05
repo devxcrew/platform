@@ -1,7 +1,10 @@
 import type { IdentityRoleProvider } from "./role.provider.js";
 export { createIdentityRoleProvider } from "./role.provider.js";
 export { identityRolesMigration } from "./role.migration.js";
-export { verifyRoles } from "./role.checks.js";
+export { seedRoles } from "./role.seed.js";
+export { roleResource } from "./role.routes.js";
 export { customRoleCreateSchema, customRoleUpdateSchema, roleUpdateSchema } from "./role.schema.js";
 export type { IdentityRoleProvider };
 export type IdentityRoleResolver = IdentityRoleProvider["resolve"];
+export type { IdentityRoleRow, IdentityCustomRoleRow } from "./role.types.js";
+export { IdentityRoleController } from "./role.controller.js";

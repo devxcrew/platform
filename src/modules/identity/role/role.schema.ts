@@ -1,12 +1,13 @@
 import { z } from "zod";
-import { resourceIdSchema, identityKeySchema } from "../identity.schema.js";
+import { identityKeySchema } from "../support/identity.schema.js";
+import { permissionIdsSchema } from "../role-permission/role-permission.schema.js";
 
 const name = z.string().trim().min(1).max(100);
 const expectedVersion = z.number().int().min(0);
 
 export const roleUpdateSchema = z
   .object({
-    permissionIds: z.array(resourceIdSchema).max(100),
+    permissionIds: permissionIdsSchema,
     expectedVersion
   })
   .strict();
@@ -14,7 +15,7 @@ export const roleUpdateSchema = z
 export const customRoleCreateSchema = z
   .object({
     name,
-    permissionIds: z.array(resourceIdSchema).max(100),
+    permissionIds: permissionIdsSchema,
     tenantId: identityKeySchema.optional()
   })
   .strict();
@@ -22,7 +23,7 @@ export const customRoleCreateSchema = z
 export const customRoleUpdateSchema = z
   .object({
     name: name.optional(),
-    permissionIds: z.array(resourceIdSchema).max(100).optional(),
+    permissionIds: permissionIdsSchema.optional(),
     active: z.boolean().optional(),
     expectedVersion
   })

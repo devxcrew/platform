@@ -1,10 +1,10 @@
 import type { Kysely } from "kysely";
 import type { IdentityConfig, IdentityProviderOptions, IdentitySchema } from "../identity.types.js";
 import type { IdentityPermissionProvider } from "../permission/index.js";
-import { IdentityRepository } from "./user.repository.js";
+import { IdentityUserRepository } from "./user.repository.js";
 import { IdentityService } from "./user.service.js";
 import { IdentityLifecycleService } from "./user.lifecycle.service.js";
-import { IdentityUserAdministrationService } from "./user.administration-service.js";
+import { IdentityUserAdministrationService } from "./user.administration.service.js";
 import type { IdentityRoleResolver } from "../role/index.js";
 import type { IdentityMutation } from "../identity.types.js";
 import type { IdentityUserRoleProvider } from "../user-role/index.js";
@@ -15,8 +15,9 @@ export function createIdentityUserProvider(
   permissions: IdentityPermissionProvider,
   options: IdentityProviderOptions = {}
 ) {
-  const repository = new IdentityRepository(database, permissions);
+  const repository = new IdentityUserRepository(database, permissions);
   return Object.freeze({
+    verify: repository.verifySchema.bind(repository),
     identity: new IdentityService(repository, config),
     lifecycle: new IdentityLifecycleService(database, config, options.delivery, permissions)
   });
@@ -36,6 +37,8 @@ export function createIdentityUserAdministrationProvider(
     mutate
   );
   return Object.freeze({
+    list: service.list.bind(service),
+    show: service.show.bind(service),
     create: service.create.bind(service),
     update: service.update.bind(service),
     profile: service.profile.bind(service)

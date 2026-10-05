@@ -1,20 +1,45 @@
-import { randomUUID } from "node:crypto";
 import type { Kysely, Transaction } from "kysely";
 import type { IdentitySchema, Portal, Principal } from "../identity.types.js";
-import { IdentityError } from "../identity.error.js";
-import { checkIdentityRequest } from "../identity.request-context.js";
+import { IdentityError } from "../support/identity.error.js";
+import { checkIdentityRequest } from "../support/identity.request-context.js";
 import { protectAdministrators } from "./user-role.policy.js";
 import { membershipSchema, membershipUpdateSchema } from "./user-role.schema.js";
 import type { IdentityRoleResolver } from "../role/index.js";
 import type { IdentityMutation } from "../identity.types.js";
+import { listMemberships, showMembership } from "./user-role.repository.js";
+import type { IdentityListQuery } from "../support/pagination.schema.js";
 
 export class IdentityUserRoleService {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
     private readonly resolveRole: IdentityRoleResolver,
     private readonly mutate: IdentityMutation,
-    private readonly assertUserVisible: (actor: Principal, userId: string) => Promise<unknown>
+    private readonly assertUserVisible: (actor: Principal, userId: string) => Promise<unknown>,
+    private readonly recordAudit: (
+      trx: Transaction<IdentitySchema>,
+      actor: Principal,
+      tenantId: string,
+      action: string,
+      id: string
+    ) => Promise<void>,
+    private readonly revokeMembershipSessions: (
+      trx: Transaction<IdentitySchema>,
+      appId: string,
+      userId: string,
+      tenantId: string,
+      portal: Portal
+    ) => Promise<void>
   ) {}
+
+  list(actor: Principal, query: IdentityListQuery) {
+    this.manage(actor);
+    return listMemberships(this.db, actor, query);
+  }
+
+  show(actor: Principal, id: string) {
+    this.manage(actor);
+    return showMembership(this.db, actor, id);
+  }
 
   async createMembership(actor: Principal, raw: unknown) {
     this.manage(actor);
@@ -149,13 +174,7 @@ export class IdentityUserRoleService {
         .executeTakeFirst();
       if (changed.numUpdatedRows !== 1n)
         throw new IdentityError(409, "This record changed. Reload before saving.");
-      await trx
-        .deleteFrom("identity_sessions")
-        .where("app_id", "=", actor.appId)
-        .where("user_id", "=", userId)
-        .where("tenant_id", "=", tenantId)
-        .where("portal", "=", oldPortal as Portal)
-        .execute();
+      await this.revokeMembershipSessions(trx, actor.appId, userId, tenantId, oldPortal as Portal);
       const nextId = `${userId}~${tenantId}~${selected.portal}`;
       await this.audit(trx, actor, tenantId, "identity.membership.changed", nextId);
       checkIdentityRequest();
@@ -210,13 +229,7 @@ export class IdentityUserRoleService {
         .where("tenant_id", "=", tenantId)
         .where("role_id", "=", portal)
         .execute();
-      await trx
-        .deleteFrom("identity_sessions")
-        .where("app_id", "=", actor.appId)
-        .where("user_id", "=", userId)
-        .where("tenant_id", "=", tenantId)
-        .where("portal", "=", portal as Portal)
-        .execute();
+      await this.revokeMembershipSessions(trx, actor.appId, userId, tenantId, portal as Portal);
       await this.audit(trx, actor, tenantId, "identity.membership.removed", id);
       checkIdentityRequest();
     });
@@ -257,17 +270,6 @@ export class IdentityUserRoleService {
     action: string,
     resourceId: string
   ) {
-    await trx
-      .insertInto("identity_audit_events")
-      .values({
-        id: randomUUID(),
-        app_id: actor.appId,
-        actor_id: actor.user.id,
-        tenant_id: tenantId,
-        action,
-        resource_id: resourceId,
-        created_at: new Date().toISOString()
-      })
-      .execute();
+    await this.recordAudit(trx, actor, tenantId, action, resourceId);
   }
 }

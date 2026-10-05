@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { sql, type Kysely, type Transaction } from "kysely";
-import { IdentityError } from "../identity.error.js";
+import { IdentityError } from "../support/identity.error.js";
 import type { IdentityMutation, IdentitySchema, Principal } from "../identity.types.js";
 import type { IdentityRoleResolver } from "../role/index.js";
 import { protectAdministrators } from "../user-role/index.js";
 import type { IdentityUserRoleProvider } from "../user-role/index.js";
 import { hashPassword } from "./user.password.js";
 import { profileSchema, userCreateSchema, userUpdateSchema } from "./user.schema.js";
+import { listUsers, showUser } from "./user.repository.js";
+import type { IdentityListQuery } from "../support/pagination.schema.js";
 
 export class IdentityUserAdministrationService {
   constructor(
@@ -16,7 +18,18 @@ export class IdentityUserAdministrationService {
     private readonly mutate: IdentityMutation
   ) {}
 
+  list(actor: Principal, query: IdentityListQuery) {
+    this.manage(actor);
+    return listUsers(this.db, actor, query);
+  }
+
+  show(actor: Principal, id: string) {
+    this.manage(actor);
+    return showUser(this.db, actor, id);
+  }
+
   async create(actor: Principal, raw: unknown) {
+    this.manage(actor);
     const input = userCreateSchema.parse(raw);
     const tenantId = this.tenantId(actor, input.tenantId);
     await this.resolveRole(this.db, actor, input.roleId, tenantId);
@@ -53,6 +66,8 @@ export class IdentityUserAdministrationService {
   }
 
   async update(actor: Principal, id: string, raw: unknown) {
+    this.manage(actor);
+    if (!(await this.show(actor, id))) throw new IdentityError(404, "Resource not found.");
     const input = userUpdateSchema.parse(raw);
     return this.mutate(actor, "users", id, async (trx) => {
       const current = await trx
@@ -127,6 +142,11 @@ export class IdentityUserAdministrationService {
     if (requested && requested !== actor.tenant.id && actor.portal !== "super-admin")
       throw new IdentityError(403, "Access denied.");
     return requested ?? actor.tenant.id;
+  }
+
+  private manage(actor: Principal) {
+    if (actor.portal === "user" || !actor.permissions.includes("identity.manage"))
+      throw new IdentityError(403, "Access denied.");
   }
 
   private async activeTenant(trx: Transaction<IdentitySchema>, id: string) {

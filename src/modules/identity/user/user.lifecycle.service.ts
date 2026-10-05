@@ -1,9 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { Kysely } from "kysely";
 import { digest, hashPassword } from "./user.password.js";
-import { IdentityError } from "../identity.error.js";
-import { IdentityRepository } from "./user.repository.js";
-import { checkIdentityRequest } from "../identity.request-context.js";
+import { IdentityError } from "../support/identity.error.js";
+import { IdentityUserRepository } from "./user.repository.js";
+import { checkIdentityRequest } from "../support/identity.request-context.js";
 import {
   invitationSchema,
   recoverySchema,
@@ -16,7 +16,7 @@ import type {
   Portal,
   Principal
 } from "../identity.types.js";
-import type { IdentityListQuery } from "../identity.administration-schema.js";
+import type { IdentityListQuery } from "../support/pagination.schema.js";
 import type { IdentityPermissionProvider } from "../permission/index.js";
 
 export class IdentityLifecycleService {
@@ -36,7 +36,7 @@ export class IdentityLifecycleService {
       throw new IdentityError(403, "Access denied.");
     this.requireDelivery();
     if (
-      (await new IdentityRepository(this.db, this.permissions).throttle(
+      (await new IdentityUserRepository(this.db, this.permissions).throttle(
         digest(`${actor.appId}:invitation:${actor.user.id}`)
       )) > 20
     )
@@ -76,7 +76,7 @@ export class IdentityLifecycleService {
       })
       .parse(raw);
     this.requireDelivery();
-    const repository = new IdentityRepository(this.db, this.permissions);
+    const repository = new IdentityUserRepository(this.db, this.permissions);
     if ((await repository.throttle(digest(`${this.config.appId}:recovery-ip:${address}`))) > 20)
       throw new IdentityError(429, "Too many recovery requests. Try again later.");
     if (
@@ -108,7 +108,7 @@ export class IdentityLifecycleService {
 
   async complete(portal: Portal, kind: "invitation" | "recovery", raw: unknown, address: string) {
     const input = tokenCompletionSchema.parse(raw);
-    const repository = new IdentityRepository(this.db, this.permissions);
+    const repository = new IdentityUserRepository(this.db, this.permissions);
     if ((await repository.throttle(digest(`${this.config.appId}:complete:${address}`))) > 10)
       throw new IdentityError(429, "Too many account requests. Try again later.");
     const available = await this.db
@@ -187,7 +187,7 @@ export class IdentityLifecycleService {
           })
           .execute();
       } else {
-        const principal = await new IdentityRepository(trx, this.permissions).principal(
+        const principal = await new IdentityUserRepository(trx, this.permissions).principal(
           userId,
           token.tenant_id,
           portal,

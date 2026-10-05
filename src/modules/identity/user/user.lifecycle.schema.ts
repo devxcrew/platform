@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { portalSchema } from "./user.schema.js";
-import { resourceIdSchema } from "../identity.schema.js";
+import { resourceIdSchema } from "../support/identity.schema.js";
 export const invitationSchema = z
   .object({
     email: z

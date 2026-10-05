@@ -1,5 +1,14 @@
-import type { Generated, Transaction } from "kysely";
+import type { Transaction } from "kysely";
 import type { IdentityPermissionDeclaration } from "./permission/index.js";
+import type { IdentityUserTables } from "./user/user.types.js";
+import type { IdentityOrganizationTables } from "./organization/organization.types.js";
+import type { IdentityRoleTables } from "./role/role.types.js";
+import type { IdentityPermissionTables } from "./permission/permission.types.js";
+import type { IdentityRolePermissionTables } from "./role-permission/role-permission.types.js";
+import type { IdentityUserRoleTables } from "./user-role/user-role.types.js";
+import type { IdentitySessionTables } from "./session/session.types.js";
+import type { IdentitySettingsTables } from "./settings/settings.types.js";
+import type { IdentityAuditTables } from "./audit/audit.types.js";
 export type Portal = "user" | "admin" | "super-admin";
 export interface IdentityPermissionCatalogEntry {
   id: string;
@@ -29,96 +38,16 @@ export type IdentityMutation = <T>(
   action: (trx: Transaction<IdentitySchema>, id: string) => Promise<T>,
   affectedTenant?: string
 ) => Promise<T>;
-export interface IdentitySchema {
-  identity_permission_declarations: {
-    permission_id: string;
-    app_id: string;
-    owner: string;
-    portals: string;
-    label: Generated<string | null>;
-  };
-  identity_app_settings: {
-    app_id: string;
-    display_name: string;
-    locale: string;
-    time_zone: string;
-    session_seconds: number;
-    version: Generated<number>;
-  };
-  identity_tokens: {
-    id: string;
-    token_hash: string;
-    app_id: string;
-    tenant_id: string;
-    kind: "invitation" | "recovery";
-    email: string;
-    name: string;
-    role_id: Portal;
-    user_id: string | null;
-    expires_at: string;
-    consumed_at: string | null;
-    delivered: number;
-  };
-  identity_users: {
-    id: string;
-    email: string;
-    name: string;
-    password_hash: string;
-    active: number;
-    version: Generated<number>;
-  };
-  identity_tenants: {
-    id: string;
-    name: string;
-    active: number;
-    version: Generated<number>;
-  };
-  identity_roles: { id: string; version: Generated<number> };
-  identity_permissions: { id: string };
-  identity_role_permissions: { role_id: string; permission_id: string };
-  identity_memberships: {
-    user_id: string;
-    tenant_id: string;
-    role_id: string;
-    custom_role_id: Generated<string | null>;
-    active: Generated<number>;
-    version: Generated<number>;
-  };
-  identity_custom_roles: {
-    id: string;
-    app_id: string;
-    tenant_id: string;
-    name: string;
-    active: Generated<number>;
-    version: Generated<number>;
-  };
-  identity_custom_role_permissions: { role_id: string; permission_id: string };
-  identity_sessions: {
-    token_hash: string;
-    user_id: string;
-    tenant_id: string;
-    app_id: string;
-    portal: Portal;
-    expires_at: string;
-  };
-  identity_throttles: { key: string; attempts: number; expires_at: string };
-  identity_settings: {
-    tenant_id: string;
-    display_name: string;
-    locale: string;
-    time_zone: string;
-    version: Generated<number>;
-  };
-  identity_audit_events: {
-    id: string;
-    app_id: string;
-    actor_id: string;
-    tenant_id: string;
-    action: string;
-    resource_id: string;
-    created_at: string;
-  };
-}
+export interface IdentitySchema
+  extends IdentityUserTables,
+    IdentityOrganizationTables,
+    IdentityRoleTables,
+    IdentityPermissionTables,
+    IdentityRolePermissionTables,
+    IdentityUserRoleTables,
+    IdentitySessionTables,
+    IdentitySettingsTables,
+    IdentityAuditTables {}
 export interface IdentityDeliveryProvider {
   send(input: {
     to: string;

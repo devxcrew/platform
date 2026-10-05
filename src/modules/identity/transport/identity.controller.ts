@@ -1,28 +1,34 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ZodError } from "zod";
-import { portalSchema, loginSchema, passwordSchema } from "./user/index.js";
-import type { IdentityUserProvider } from "./user/index.js";
-import { IdentityError } from "./identity.error.js";
+import { portalSchema, IdentityUserLifecycleController } from "../user/index.js";
+import { IdentitySessionAuthenticationController } from "../session/index.js";
+import type { IdentityUserProvider } from "../user/index.js";
+import { IdentityError } from "../support/identity.error.js";
 import { identityRoutes, portalRoutes } from "./identity.routes.js";
-import type { IdentityConfig, Portal } from "./identity.types.js";
-import { IdentityAdministrationService } from "./identity.administration-service.js";
+import type { IdentityConfig, Portal } from "../identity.types.js";
+import { IdentityAdministrationComposition } from "../composition/identity.composition.js";
 import {
   listSchema,
   resourceListQuerySchema,
   type IdentityResource
-} from "./identity.administration-schema.js";
-import { membershipDeleteQuerySchema } from "./user-role/index.js";
-import { resourceIdSchema } from "./identity.schema.js";
+} from "../support/pagination.schema.js";
+import { membershipDeleteQuerySchema } from "../user-role/index.js";
+import { resourceIdSchema } from "../support/identity.schema.js";
 
-import { checkIdentityRequest, runIdentityRequest } from "./identity.request-context.js";
+import { checkIdentityRequest, runIdentityRequest } from "../support/identity.request-context.js";
 
 export class IdentityController {
+  private readonly authentication: IdentitySessionAuthenticationController;
+  private readonly accounts: IdentityUserLifecycleController;
   constructor(
-    private readonly service: IdentityUserProvider["identity"],
+    service: IdentityUserProvider["identity"],
     private readonly config: IdentityConfig,
-    private readonly administration: IdentityAdministrationService,
-    private readonly lifecycle: IdentityUserProvider["lifecycle"]
-  ) {}
+    private readonly administration: IdentityAdministrationComposition,
+    lifecycle: IdentityUserProvider["lifecycle"]
+  ) {
+    this.authentication = new IdentitySessionAuthenticationController(service, config);
+    this.accounts = new IdentityUserLifecycleController(lifecycle);
+  }
 
   async handle(
     request: IncomingMessage,
@@ -50,7 +56,7 @@ export class IdentityController {
         request.headers.origin !== this.config.origin
       )
         throw new IdentityError(403, "Untrusted request origin.");
-      const principal = await this.service.authenticate(portal, this.token(request, portal));
+      const principal = await this.authentication.authenticate(portal, this.token(request, portal));
       checkIdentityRequest();
       return principal;
     });
@@ -73,8 +79,8 @@ export class IdentityController {
       const token = this.token(request, portal);
       if (desk) {
         try {
-          const principal = await this.service.authenticate(portal, token);
-          this.service.requirePermission(principal, `desk.${portal}`);
+          const principal = await this.authentication.authenticate(portal, token);
+          this.authentication.requireDesk(principal, portal);
           return false;
         } catch (error) {
           if (!(error instanceof IdentityError)) throw error;
@@ -91,37 +97,28 @@ export class IdentityController {
         return true;
       }
       if (route.action === "login") {
-        const result = await this.service.login(
+        const result = await this.authentication.login(
           portal,
-          loginSchema
-            .refine((input) => this.config.mode !== "multi-tenant" || Boolean(input.tenantId), {
-              path: ["tenantId"],
-              message: "Enter an organization ID."
-            })
-            .parse(await this.body(request)),
+          await this.body(request),
           request.socket.remoteAddress ?? "unknown",
           token
         );
         response.setHeader("Set-Cookie", this.cookie(portal, result.token, result.sessionSeconds));
         this.json(response, 201, { data: result.principal });
       } else if (route.action === "logout") {
-        await this.service.logout(portal, token);
+        await this.authentication.logout(portal, token);
         response.setHeader("Set-Cookie", this.cookie(portal, "", 0));
         response.writeHead(204);
         response.end();
       } else {
-        const principal = await this.service.authenticate(portal, token);
+        const principal = await this.authentication.authenticate(portal, token);
         if (route.action === "password") {
-          await this.service.changePassword(
-            principal,
-            passwordSchema.parse(await this.body(request))
-          );
+          await this.authentication.changePassword(principal, await this.body(request));
           response.setHeader("Set-Cookie", this.cookie(portal, "", 0));
           response.writeHead(204);
           response.end();
         } else {
-          this.service.requirePermission(principal, `desk.${portal}`);
-          this.json(response, 200, { data: principal });
+          this.json(response, 200, { data: this.authentication.current(principal, portal) });
         }
       }
     } catch (error) {
@@ -152,7 +149,7 @@ export class IdentityController {
     if (path === "configuration") {
       if (request.method !== "GET") throw new IdentityError(405, "Method not allowed.");
       this.json(response, 200, {
-        data: await this.administration.configuration(
+        data: await this.administration.settingsController.configuration(
           this.config.appId,
           this.config.mode === "multi-tenant"
         )
@@ -164,12 +161,12 @@ export class IdentityController {
       const raw = await this.body(request);
       const data =
         path === "recovery"
-          ? await this.lifecycle.requestRecovery(
+          ? await this.accounts.requestRecovery(
               portal,
               raw,
               request.socket.remoteAddress ?? "unknown"
             )
-          : await this.lifecycle.complete(
+          : await this.accounts.complete(
               portal,
               path === "recovery/complete" ? "recovery" : "invitation",
               raw,
@@ -178,11 +175,11 @@ export class IdentityController {
       this.json(response, path === "recovery" ? 202 : 200, { data });
       return;
     }
-    const principal = await this.service.authenticate(portal, token);
+    const principal = await this.authentication.authenticate(portal, token);
     if (path === "presentation") {
       if (request.method !== "GET") throw new IdentityError(405, "Method not allowed.");
       this.json(response, 200, {
-        data: await this.administration.presentation(principal)
+        data: await this.administration.settingsController.presentation(principal)
       });
       return;
     }
@@ -191,27 +188,27 @@ export class IdentityController {
         const query = resourceListQuerySchema.parse(
           Object.fromEntries(new URL(request.url!, this.config.origin).searchParams)
         );
-        this.json(response, 200, this.wireList(await this.lifecycle.list(principal, query)));
+        this.json(response, 200, this.wireList(await this.accounts.index(principal, query)));
       } else if (path === "invitations" && request.method === "POST") {
         this.json(response, 201, {
-          data: await this.lifecycle.invite(principal, await this.body(request))
+          data: await this.accounts.store(principal, await this.body(request))
         });
       } else if (request.method === "GET") {
         this.json(response, 200, {
-          data: await this.lifecycle.show(
+          data: await this.accounts.show(
             principal,
             resourceIdSchema.parse(path.slice("invitations/".length))
           )
         });
       } else if (request.method === "POST" && path.endsWith("/resend")) {
         this.json(response, 201, {
-          data: await this.lifecycle.resend(
+          data: await this.accounts.resend(
             principal,
             resourceIdSchema.parse(path.slice("invitations/".length, -"/resend".length))
           )
         });
       } else if (request.method === "DELETE") {
-        await this.lifecycle.revoke(
+        await this.accounts.destroy(
           principal,
           resourceIdSchema.parse(path.slice("invitations/".length))
         );
@@ -226,10 +223,10 @@ export class IdentityController {
       const input = request.method === "PATCH" ? await this.body(request) : undefined;
       const data =
         path === "profile"
-          ? await this.administration.profile(principal, input)
+          ? await this.administration.userController.profile(principal, input)
           : path === "settings"
-            ? await this.administration.settings(principal, input)
-            : await this.administration.applicationSettings(
+            ? await this.administration.settingsController.organization(principal, input)
+            : await this.administration.settingsController.application(
                 principal,
                 path === "security-settings",
                 input,
@@ -243,6 +240,7 @@ export class IdentityController {
     );
     if (!match) throw new IdentityError(404, "Not found.");
     const resource = match[1] as IdentityResource;
+    const controller = this.administration.controllers[resource];
     const id = match[2] ? resourceIdSchema.parse(decodeURIComponent(match[2])) : undefined;
     if (request.method === "GET") {
       const query = resourceListQuerySchema.parse(
@@ -252,16 +250,30 @@ export class IdentityController {
         response,
         200,
         id
-          ? { data: await this.administration.show(principal, resource, id) }
-          : this.wireList(await this.administration.list(principal, resource, query))
+          ? { data: await this.requireResult(controller.show(principal, id)) }
+          : this.wireList(
+              (await controller.index(principal, query)) as {
+                data: unknown[];
+                meta: { page: number; perPage: number; total: number; lastPage: number };
+              }
+            )
       );
     } else if (request.method === "POST" && !id) {
       this.json(response, 201, {
-        data: await this.administration.create(principal, resource, await this.body(request))
+        data: await this.requireAction(
+          controller.store?.bind(controller),
+          principal,
+          await this.body(request)
+        )
       });
     } else if (request.method === "PATCH" && id) {
       this.json(response, 200, {
-        data: await this.administration.update(principal, resource, id, await this.body(request))
+        data: await this.requireUpdate(
+          controller.update?.bind(controller),
+          principal,
+          id,
+          await this.body(request)
+        )
       });
     } else if (request.method === "DELETE" && id) {
       const query = new URL(request.url!, this.config.origin).searchParams;
@@ -269,7 +281,9 @@ export class IdentityController {
         resource === "memberships"
           ? membershipDeleteQuerySchema.parse(Object.fromEntries(query)).expectedVersion
           : undefined;
-      await this.administration.remove(principal, resource, id, expectedVersion);
+      if (!controller.destroy)
+        throw new IdentityError(405, "Deletion is not supported for this resource.");
+      await controller.destroy(principal, id, expectedVersion);
       response.writeHead(204);
       response.end();
     } else throw new IdentityError(405, "Method not allowed.");
@@ -288,6 +302,39 @@ export class IdentityController {
         last_page: page.meta.lastPage
       }
     };
+  }
+
+  private async requireResult(result: Promise<unknown>) {
+    const value = await result;
+    if (!value) throw new IdentityError(404, "Resource not found.");
+    return value;
+  }
+
+  private requireAction(
+    action:
+      | ((actor: import("../identity.types.js").Principal, raw: unknown) => Promise<unknown>)
+      | undefined,
+    actor: import("../identity.types.js").Principal,
+    raw: unknown
+  ) {
+    if (!action) throw new IdentityError(405, "Creation is not supported for this resource.");
+    return action(actor, raw);
+  }
+
+  private requireUpdate(
+    action:
+      | ((
+          actor: import("../identity.types.js").Principal,
+          id: string,
+          raw: unknown
+        ) => Promise<unknown>)
+      | undefined,
+    actor: import("../identity.types.js").Principal,
+    id: string,
+    raw: unknown
+  ) {
+    if (!action) throw new IdentityError(405, "Update is not supported for this resource.");
+    return action(actor, id, raw);
   }
 
   private cookie(portal: Portal, token: string, age: number) {

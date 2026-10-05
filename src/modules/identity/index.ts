@@ -1,7 +1,7 @@
 export { createIdentityProvider } from "./identity.provider.js";
-export { IdentityError } from "./identity.error.js";
-export { identityMigration } from "./identity.migration.js";
-export { identityAdministrationMigration } from "./identity.administration-migration.js";
+export { IdentityError } from "./support/identity.error.js";
+export { identityMigration } from "./legacy/identity.migration.js";
+export { identityAdministrationMigration } from "./legacy/identity.administration-migration.js";
 export { identityRolesMigration } from "./role/index.js";
 export { identityPermissionDeclarationsMigration } from "./permission/index.js";
 export { identityPermissionLabelsMigration } from "./permission/index.js";
@@ -11,7 +11,7 @@ export {
   organizationCreateSchema,
   organizationUpdateSchema,
   settingsSchema
-} from "./identity.administration-schema.js";
+} from "./support/pagination.schema.js";
 export { userCreateSchema, userUpdateSchema, profileSchema } from "./user/index.js";
 export {
   membershipSchema,
@@ -19,8 +19,8 @@ export {
   membershipDeleteQuerySchema
 } from "./user-role/index.js";
 export { customRoleCreateSchema, customRoleUpdateSchema, roleUpdateSchema } from "./role/index.js";
-export type { IdentityListQuery, IdentityResource } from "./identity.administration-schema.js";
-export { seedIdentity } from "./user/index.js";
+export type { IdentityListQuery, IdentityResource } from "./support/pagination.schema.js";
+export { seedIdentity } from "./composition/identity.seed.js";
 export type {
   IdentitySchema,
   IdentityConfig,

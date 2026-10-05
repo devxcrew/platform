@@ -1,5 +1,17 @@
 # Identity audit
 
+## Identity ownership alignment - 2026-10-05
+
+Passed: authenticated `npm run mcp:connect`; deployed guidance is advisory and the Platform repository metadata is null.
+Passed: `npm run build` after the owner-local refactor and `git diff --check`.
+Passed: the provider scan found no direct SQL in `*.provider.ts`.
+Changed: permission declarations now have schema, service, and repository roles. Role-permission writes now use its service and repository.
+Changed: user, membership, role, and permission list SQL moved from the identity administration repository into owner repositories.
+Changed: the role check helper is test-only, and the user administration helper uses dot-separated naming.
+Partial: the root administration service still owns organization, settings, and session operations; historical migrations still span several tables.
+Partial: some owner read models still join related tables directly. Replace those joins through explicit owner contracts when splitting the remaining read model.
+Untested in this pass: the identity test suite, live database upgrades, consuming application behavior, and browser flows. No release, commit, push, or publication occurred.
+
 ## Independent review - 2026-10-04
 
 ### Recovery correction verified
@@ -221,3 +233,18 @@ The baseline is recorded in projects/cxsun/agent/DEPENDENCY-BASELINE.json.
 Moved identity user, role, user-role, permission, and role-permission implementations, schemas, migrations, and checks into owner folders under `src/modules/identity`. User/profile administration, membership creation, and system-role permission updates now execute in their owning modules. Shared request-scoped transactions and audit recording live in `identity.mutation-service.ts`. Adopted CXApp's flat, filename-prefixed module layout and formatting settings. Retained Platform's provider contract as the module registration boundary and updated root exports and imports.
 
 Verification: `node node_modules/typescript/bin/tsc -p tsconfig.json`, Prettier `--check`, and `git diff --check` passed after the use-case moves. Identity tests were not run.
+
+## Identity owner extraction - 2026-10-05
+
+The root identity directory now contains the public provider, public schemas, shared type composition, and public barrel. Organization, settings, session, and audit own their implementation. `composition` wires owner providers and seed order; `transport` owns HTTP adaptation; `support` contains business-neutral request and paging utilities. Applied historical migrations retain their original content in `legacy` so their sequence stays stable. A missing system role update now returns 404.
+
+Authenticated `npm run mcp:connect` succeeded before this work. `npm run build` and `git diff --check` passed after extraction and formatting. Tests were not run in this turn. Remaining direct sibling-table queries and writes are recorded in `agent/TASK.md`; strict table ownership is not yet complete.
+
+Audit targeting now uses membership and organization provider lookups. Role and membership changes call audit and session provider contracts for writes within the same transaction. `npm run build` and `git diff --check` passed after these changes.
+
+
+## Shared alignment audit - 2026-10-05
+
+Seven tests, build and fresh source consumers passed after seeder, controller binding and browser schema corrections. Source 0.1.5 remains unpublished.
+
+Authenticated live MCP verification passed. See the [alignment audit](D:/codexsun/projects/cxsun/agent/SHARED-ALIGNMENT.md). Version numbers remain unchanged. No release delivery was performed by this audit.

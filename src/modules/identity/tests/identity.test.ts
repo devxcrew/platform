@@ -3,8 +3,8 @@ import { test } from "node:test";
 import { hashPassword, verifyPassword } from "../user/user.password.js";
 import { loginSchema, accountSchema } from "../user/user.schema.js";
 import { IdentityError } from "../index.js";
-import { organizationCreateSchema } from "../identity.administration-schema.js";
-import { resourceIdSchema } from "../identity.schema.js";
+import { organizationCreateSchema } from "../support/pagination.schema.js";
+import { resourceIdSchema } from "../support/identity.schema.js";
 
 test("public IdentityError exposes a safe stable status and copied field contract", () => {
   const fields = { name: ["Enter a name."] };

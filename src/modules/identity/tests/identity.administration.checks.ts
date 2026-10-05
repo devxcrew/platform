@@ -1,4 +1,4 @@
-import { verifyRoles } from "../role/role.checks.js";
+import { verifyRoles } from "./role.checks.js";
 import assert from "node:assert/strict";
 import type { Kysely } from "kysely";
 import type { IdentitySchema, IdentityProviderOptions, Portal } from "../identity.types.js";

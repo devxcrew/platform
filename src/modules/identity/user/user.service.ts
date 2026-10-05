@@ -1,15 +1,15 @@
 import { randomBytes } from "node:crypto";
-import { IdentityRepository } from "./user.repository.js";
+import { IdentityUserRepository } from "./user.repository.js";
 import { digest, hashPassword, verifyPassword } from "./user.password.js";
 import type { IdentityConfig, Portal, Principal } from "../identity.types.js";
 import type { z } from "zod";
 import type { loginSchema, passwordSchema } from "./user.schema.js";
-import { IdentityError } from "../identity.error.js";
+import { IdentityError } from "../support/identity.error.js";
 
 export class IdentityService {
   private readonly dummyHash = hashPassword(randomBytes(32).toString("hex"));
   constructor(
-    private readonly repository: IdentityRepository,
+    private readonly repository: IdentityUserRepository,
     private readonly config: IdentityConfig
   ) {}
 

@@ -1,13 +1,47 @@
 import type { IdentityPermissionProvider } from "../permission/index.js";
 import { sql, type Kysely } from "kysely";
-import type { IdentitySchema, Portal } from "../identity.types.js";
-import { checkIdentityRequest } from "../identity.request-context.js";
+import type { IdentitySchema, Portal, Principal } from "../identity.types.js";
+import { checkIdentityRequest } from "../support/identity.request-context.js";
+import type { IdentityListQuery } from "../support/pagination.schema.js";
+import { listRows, showRow } from "../support/pagination.js";
 
-export class IdentityRepository {
+const presentUser = (row: Record<string, unknown>) => ({
+  ...row,
+  active: Boolean(row.active),
+  version: Number(row.version)
+});
+
+export function listUsers(db: Kysely<IdentitySchema>, actor: Principal, query: IdentityListQuery) {
+  return listRows(db, userListSource(actor), ["id", "name", "email"], query, presentUser);
+}
+
+export function showUser(db: Kysely<IdentitySchema>, actor: Principal, id: string) {
+  return showRow(db, userListSource(actor), id, presentUser);
+}
+
+function userListSource(actor: Principal) {
+  const global = actor.portal === "super-admin";
+  return sql`select u.id,u.name,u.email,u.active,u.version from identity_users u
+    where exists (select 1 from identity_memberships m left join identity_custom_roles c on c.id=m.custom_role_id
+      where m.user_id=u.id and (m.custom_role_id is null or c.app_id=${actor.appId})
+      ${global ? sql`` : sql`and m.tenant_id=${actor.tenant.id}`})
+      ${global ? sql`or not exists(select 1 from identity_memberships m where m.user_id=u.id)` : sql``}`;
+}
+
+export class IdentityUserRepository {
   constructor(
     private readonly db: Kysely<IdentitySchema>,
     private readonly permissions: IdentityPermissionProvider
   ) {}
+
+  async verifySchema() {
+    await this.db.selectFrom("identity_users").select("version").limit(1).execute();
+    await this.db
+      .selectFrom("identity_tokens")
+      .select(["delivered", "consumed_at"])
+      .limit(1)
+      .execute();
+  }
 
   user(email: string) {
     return this.db
